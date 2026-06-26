@@ -356,6 +356,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
       <div class="sel-wrap"><select id="f-est">
         <option>Pendiente</option><option>Confirmado</option><option>En curso</option><option>Completado</option>
       </select></div></div>
+    <div class="field"><label>🏨 Noches de hotel extra</label><input type="number" id="f-hotel" value="0" min="0" placeholder="0"></div>
     <div class="field"><label>Observaciones</label><input type="text" id="f-obs" placeholder="Opcional..."></div>
     <div id="dias-badge" style="display:none" class="dias-b"></div>
     <div id="msg-dana" style="display:none" class="msg-box dana">
@@ -458,7 +459,7 @@ try{var _rls=lsGet('bb_rec','');if(_rls){var _rp=JSON.parse(_rls);if(_rp&&_rp.le
 const CFG_DEFS=[
   {cat:'fuel',ico:'⛽',k:'gasoil_precio',lbl:'Precio gasoil ($/L)',sub:'Actualizalo cuando cambie',def:1600},
   {cat:'fuel',ico:'🚗',k:'km_litro',lbl:'Consumo (km/L)',sub:'Hilux diésel',def:7.5},
-  {cat:'fuel',ico:'🛣️',k:'peaje',lbl:'Peajes (USD ida)',sub:'Estimado',def:50},
+  {cat:'fuel',ico:'🛣️',k:'peaje',lbl:'Peajes (USD ida)',sub:'0 si no aplica',def:0},
   {cat:'precios',ico:'💚',k:'p_gt60',lbl:'Precio +60 BB (USD)',sub:'Más de 60',def:25},
   {cat:'precios',ico:'💛',k:'p_40_60',lbl:'Precio 40-60 BB (USD)',sub:'Entre 40 y 60',def:30},
   {cat:'precios',ico:'🔴',k:'p_lt40',lbl:'Precio -40 BB (USD)',sub:'Menos de 40',def:35},
@@ -503,13 +504,14 @@ function fNum(x){return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g
 function fDate(d){if(!d)return'';var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
 function dias(bb,tipo){return bb?Math.ceil(bb/(tipo==='sellado'?60:40)):0;}
 function viat(km,d,kmd){
-  // Viáticos = desayunos + almuerzos + peajes (sin combustible ni hotel)
-  // Fórmula idéntica a calcViaticos() en App Admin
+  // Viáticos = desayunos + almuerzos + peajes — SIEMPRE 2 personas
+  var personas=2;
   var tc=parseFloat(cfg.tc)||1150;
-  var desay2=d*2*(parseFloat(cfg.desay)||30000);
-  var alm2=d*2*(parseFloat(cfg.ac)||40000);
-  var peajes2=(cfg.peaje!==undefined&&cfg.peaje!==''?parseFloat(cfg.peaje):50)*2*tc;
-  return Math.round(desay2+alm2+peajes2);
+  var desay=d*personas*(parseFloat(cfg.desay)||30000);
+  var alm=d*personas*(parseFloat(cfg.ac)||40000);
+  var peajeUSD=parseFloat(cfg.peaje)||0;
+  var peajes=peajeUSD*2*tc; // ida y vuelta
+  return Math.round(desay+alm+peajes);
 }
 function toast(msg){var t=n('toast');t.textContent=msg;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2600);}
 function openModal(id){n(id).classList.add('open');}
@@ -604,6 +606,10 @@ n('btn-gen-msg').addEventListener('click',function(){
   var tipoLbl=tipo==='sellado'?'Solo Sellado + Tratamiento':'Envasado + Tratamiento';
   var recObj=rec?RECETAS.find(function(r){return r.id==rec;}):null;
   var recLbl=recObj?recObj.n:'(sin asignar)';
+  // Hotel extra manual
+  var hotelExtra=parseInt(n('f-hotel').value)||0;
+  var hotelCosto=hotelExtra>0?(hotelExtra*2*(parseFloat(cfg.hotel)||60000)):0;
+  var hotelMsg=hotelExtra>0?'\n🏨 RESERVAR HOTEL: '+hotelExtra+' noche/s — $'+fNum(hotelCosto)+' aprox (2 personas).':'';
   // Detectar servicio consecutivo al día siguiente
   var hotelAlert='';
   if(fecha){
@@ -619,7 +625,7 @@ n('btn-gen-msg').addEventListener('click',function(){
       hotelAlert='\n\n🏨 RESERVAR HOTEL: noche del '+nocheStr+' — al día siguiente hay servicio en '+svcConsec.map(function(s){return s.cliente;}).join(', ')+'.';
     }
   }
-    var msgD='✅ SERVICIO CONFIRMADO\nCliente: '+cl2+'\nProducto: '+prodLine+' — '+tipoLbl+'\nBig Bags totales: '+bbTotal+' ('+tonsTotal+' Tn)\nReceta N°: '+(rec||'—')+(rec?' ('+recLbl+')':'')+' | Duración: '+d+' día/s'+(fecha?' | Fecha: '+fDate(fecha):'')+' \nTécnicos: Alcides Fabbio y Gabriel Rodriguez\nViáticos aprox: $'+fNum(v)+'\n→ Pedirle a Stella que transfiera ese monto.'+hotelAlert;
+      var msgD='✅ SERVICIO CONFIRMADO\nCliente: '+cl2+'\nProducto: '+prodLine+' — '+tipoLbl+'\nBig Bags totales: '+bbTotal+' ('+tonsTotal+' Tn)\nReceta N°: '+(rec||'—')+(rec?' ('+recLbl+')':'')+' | Duración: '+d+' día/s'+(fecha?' | Fecha: '+fDate(fecha):'')+' \nTécnicos: Alcides Fabbio y Gabriel Rodriguez\nViáticos aprox: $'+fNum(v)+'\n→ Pedirle a Stella que transfiera ese monto.'+hotelMsg+hotelAlert;
   n('txt-dana').textContent=msgD;
   n('msg-dana').style.display='block';
   var litN2=bbTotal*(recObj?parseFloat(recObj.n2)||800:800);
@@ -646,7 +652,7 @@ n('btn-save-svc').addEventListener('click',function(){
   var pr2s=n('f-prod2').value,bb2s=parseInt(n('f-bb2').value)||0,kg2s=parseInt(n('f-kg2').value)||1200;
   var hasP2s=pr2s&&bb2s>0;
   var prodDisplay=hasP2s?pr+' + '+pr2s:pr;
-  var s={id:'SRV-'+Date.now(),fecha:n('f-fecha').value,cliente:cl2,producto:prodDisplay,tipo:n('f-tipo').value,bb:bb,kg:parseInt(n('f-kg').value)||1200,receta:parseInt(n('f-rec').value)||0,kmdest:parseInt(n('f-kmd').value)||0,estado:n('f-est').value,obs:n('f-obs').value,producto2:pr2s,bb2:bb2s,kg2:kg2s};
+  var s={id:'SRV-'+Date.now(),fecha:n('f-fecha').value,cliente:cl2,producto:prodDisplay,tipo:n('f-tipo').value,bb:bb,kg:parseInt(n('f-kg').value)||1200,receta:parseInt(n('f-rec').value)||0,kmdest:parseInt(n('f-kmd').value)||0,estado:n('f-est').value,obs:n('f-obs').value,hotel:parseInt(n('f-hotel').value)||0,producto2:pr2s,bb2:bb2s,kg2:kg2s};
   servicios.unshift(s);lsSet('bb_s',JSON.stringify(servicios));
   postAPI('saveServicio',s);
   renderAgenda();closeModal('modal-svc');
@@ -687,15 +693,15 @@ function emailServicio(svcId){
   if(!dest){toast('Este cliente no tiene email cargado');return;}
   var sub=encodeURIComponent('Servicio MAP confirmado - '+sv.cliente+' - '+fDate(sv.fecha));
   var body=encodeURIComponent(
-    'Estimado/a '+sv.cliente+',\n\n'+
-    'Le confirmamos el servicio de atmósfera modificada (MAP):\n\n'+
-    '  Producto: '+sv.producto+'\n'+
-    '  Cantidad: '+sv.bb+' Big Bags ('+tn+' Tn)\n'+
-    '  Fecha: '+fDate(sv.fecha)+'\n\n'+
-    'Quedamos a disposición para cualquier consulta.\n\n'+
-    'Saludos,\nBag Bio / Control Bio'
+    'Estimado/a '+sv.cliente+',\r\n\r\n'+
+    'Le confirmamos el servicio de atmósfera modificada (MAP):\r\n\r\n'+
+    '  Producto: '+sv.producto+'\r\n'+
+    '  Cantidad: '+sv.bb+' Big Bags ('+tn+' Tn)\r\n'+
+    '  Fecha: '+fDate(sv.fecha)+'\r\n\r\n'+
+    'Quedamos a disposición para cualquier consulta.\r\n\r\n'+
+    'Saludos,\r\nBag Bio / Control Bio'
   );
-  location.href='mailto:'+dest+'?subject='+sub+'&body='+body;
+  location.href='mailto:'+dest+'?subject='+sub+'&body='+body.replace(/%0A/g,'%0D%0A');
 }
 
 function renderAgenda(){
@@ -1018,7 +1024,7 @@ n('mail-btn-jo').addEventListener('click',function(){
   var cl2=n('f-cliente').value,fecha=n('f-fecha').value;
   var sub=encodeURIComponent('[Copia] Servicio confirmado - '+cl2+(fecha?' - '+fDate(fecha):''));
   var body=encodeURIComponent(n('txt-dana').textContent+'\n\n---\nMENSAJE CLIENTE:\n'+n('txt-cli').textContent);
-  location.href='mailto:'+dest+'?subject='+sub+'&body='+body;
+  location.href='mailto:'+dest+'?subject='+sub+'&body='+body.replace(/%0A/g,'%0D%0A');
 });
 n('mail-btn-dana').addEventListener('click',function(){
   var dest=cfg['email_dana']||'';
@@ -1026,7 +1032,7 @@ n('mail-btn-dana').addEventListener('click',function(){
   var cl2=n('f-cliente').value,fecha=n('f-fecha').value;
   var sub=encodeURIComponent('[INTERNO] Servicio confirmado - '+cl2+(fecha?' - '+fDate(fecha):''));
   var body=encodeURIComponent(n('txt-dana').textContent);
-  location.href='mailto:'+dest+'?subject='+sub+'&body='+body;
+  location.href='mailto:'+dest+'?subject='+sub+'&body='+body.replace(/%0A/g,'%0D%0A');
 });
 n('mail-btn-cli').addEventListener('click',function(){
   var cl2=n('f-cliente').value,fecha=n('f-fecha').value;
@@ -1035,21 +1041,21 @@ n('mail-btn-cli').addEventListener('click',function(){
   if(!dest){toast('Sin email para '+cl2);return;}
   var sub=encodeURIComponent('Aviso de servicio MAP - '+cl2+(fecha?' - '+fDate(fecha):''));
   var body=encodeURIComponent(n('txt-cli').textContent);
-  location.href='mailto:'+dest+'?subject='+sub+'&body='+body;
+  location.href='mailto:'+dest+'?subject='+sub+'&body='+body.replace(/%0A/g,'%0D%0A');
 });
 n('conf-btn-cli').addEventListener('click',function(){
   var dest=n('conf-cliente-mail').dataset.dest;
   if(!dest){toast('Este cliente no tiene email');return;}
   var sub=encodeURIComponent(n('conf-sub').value);
   var body=encodeURIComponent(n('conf-body').value);
-  location.href='mailto:'+dest+'?subject='+sub+'&body='+body;
+  location.href='mailto:'+dest+'?subject='+sub+'&body='+body.replace(/%0A/g,'%0D%0A');
 });
 n('conf-btn-dana').addEventListener('click',function(){
   var dest=n('conf-dana-mail').dataset.dest;
   if(!dest){toast('Cargá el email de Dana en Config');return;}
   var sub=encodeURIComponent('[INTERNO] '+n('conf-sub').value);
   var body=encodeURIComponent('Aviso interno — nuevo servicio agendado:\n\n'+n('conf-body').value);
-  location.href='mailto:'+dest+'?subject='+sub+'&body='+body;
+  location.href='mailto:'+dest+'?subject='+sub+'&body='+body.replace(/%0A/g,'%0D%0A');
 });
 try{renderAgenda();renderClientes();renderRecetas();populateRecSelect();renderCL();}catch(e){var b=document.getElementById('err-banner');if(b){b.style.display='block';b.textContent='Init error: '+e.message+' :: '+e.stack;}}
 
