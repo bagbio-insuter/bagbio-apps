@@ -430,7 +430,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 <div class="toast" id="toast"></div>
 
 <script>
-window.onerror=function(m,s,l,c,e){var d=document.getElementById('err-banner');if(d){d.style.display='block';d.textContent='JS Error: '+m+' (línea '+l+')';} return true;};
+window.onerror=function(m,s,l,c,e){if(!m||m==='Script error.'||m==='Script error'||l===0)return true;var d=document.getElementById('err-banner');if(d){d.style.display='block';d.textContent='JS Error: '+m+' (línea '+l+')';} return true;};
 const KM={BRO:330,COTAGRO:330,OLEGA:392,CARMABE:709,ESPAR:677,'NATURAL FOOD':130,AGD:280};
 var CLIENTES=(function(){var _d=[
   {n:'BRO',c:'Emiliano Valverde',t:'+54 9 2944602678',loc:'General Cabrera, Córdoba'},
@@ -662,6 +662,27 @@ n('btn-save-svc').addEventListener('click',function(){
 });
 
 // Renders
+
+function emailServicio(svcId){
+  var sv=servicios.find(function(x){return x.id===svcId;});
+  if(!sv)return;
+  var tn=((sv.bb||0)*(sv.kg||1200)/1000).toFixed(1);
+  var cliObj=CLIENTES.find(function(c){return c.n===sv.cliente;})||{};
+  var dest=cliObj.e||'';
+  if(!dest){toast('Este cliente no tiene email cargado');return;}
+  var sub=encodeURIComponent('Servicio MAP confirmado - '+sv.cliente+' - '+fDate(sv.fecha));
+  var body=encodeURIComponent(
+    'Estimado/a '+sv.cliente+',\n\n'+
+    'Le confirmamos el servicio de atmósfera modificada (MAP):\n\n'+
+    '  Producto: '+sv.producto+'\n'+
+    '  Cantidad: '+sv.bb+' Big Bags ('+tn+' Tn)\n'+
+    '  Fecha: '+fDate(sv.fecha)+'\n\n'+
+    'Quedamos a disposición para cualquier consulta.\n\n'+
+    'Saludos,\nBag Bio / Control Bio'
+  );
+  location.href='mailto:'+dest+'?subject='+sub+'&body='+body;
+}
+
 function renderAgenda(){
   var el=n('list-agenda');
   if(!servicios.length){el.innerHTML='<div class="empty"><div class="ei">📅</div><p>No hay servicios.<br>Tocá ＋ para agregar uno.</p></div>';return;}
@@ -966,7 +987,7 @@ n('mail-btn-jo').addEventListener('click',function(){
   var cl2=n('f-cliente').value,fecha=n('f-fecha').value;
   var sub=encodeURIComponent('[Copia] Servicio confirmado - '+cl2+(fecha?' - '+fDate(fecha):''));
   var body=encodeURIComponent(n('txt-dana').textContent+'\n\n---\nMENSAJE CLIENTE:\n'+n('txt-cli').textContent);
-  window.open('https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(dest)+'&su='+sub+'&body='+body,'_blank');
+  location.href='mailto:'+dest+'?subject='+sub+'&body='+body;
 });
 n('mail-btn-dana').addEventListener('click',function(){
   var dest=cfg['email_dana']||'';
@@ -974,7 +995,7 @@ n('mail-btn-dana').addEventListener('click',function(){
   var cl2=n('f-cliente').value,fecha=n('f-fecha').value;
   var sub=encodeURIComponent('[INTERNO] Servicio confirmado - '+cl2+(fecha?' - '+fDate(fecha):''));
   var body=encodeURIComponent(n('txt-dana').textContent);
-  window.open('https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(dest)+'&su='+sub+'&body='+body,'_blank');
+  location.href='mailto:'+dest+'?subject='+sub+'&body='+body;
 });
 n('mail-btn-cli').addEventListener('click',function(){
   var cl2=n('f-cliente').value,fecha=n('f-fecha').value;
@@ -983,21 +1004,21 @@ n('mail-btn-cli').addEventListener('click',function(){
   if(!dest){toast('Sin email para '+cl2);return;}
   var sub=encodeURIComponent('Aviso de servicio MAP - '+cl2+(fecha?' - '+fDate(fecha):''));
   var body=encodeURIComponent(n('txt-cli').textContent);
-  window.open('https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(dest)+'&su='+sub+'&body='+body,'_blank');
+  location.href='mailto:'+dest+'?subject='+sub+'&body='+body;
 });
 n('conf-btn-cli').addEventListener('click',function(){
   var dest=n('conf-cliente-mail').dataset.dest;
   if(!dest){toast('Este cliente no tiene email');return;}
   var sub=encodeURIComponent(n('conf-sub').value);
   var body=encodeURIComponent(n('conf-body').value);
-  window.open('https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(dest)+'&su='+sub+'&body='+body,'_blank');
+  location.href='mailto:'+dest+'?subject='+sub+'&body='+body;
 });
 n('conf-btn-dana').addEventListener('click',function(){
   var dest=n('conf-dana-mail').dataset.dest;
   if(!dest){toast('Cargá el email de Dana en Config');return;}
   var sub=encodeURIComponent('[INTERNO] '+n('conf-sub').value);
   var body=encodeURIComponent('Aviso interno — nuevo servicio agendado:\n\n'+n('conf-body').value);
-  window.open('https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(dest)+'&su='+sub+'&body='+body,'_blank');
+  location.href='mailto:'+dest+'?subject='+sub+'&body='+body;
 });
 try{renderAgenda();renderClientes();renderRecetas();populateRecSelect();renderCL();}catch(e){var b=document.getElementById('err-banner');if(b){b.style.display='block';b.textContent='Init error: '+e.message+' :: '+e.stack;}}
 
