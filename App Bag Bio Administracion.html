@@ -265,7 +265,7 @@ var MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Se
 var CFG_DEFS=[
   {cat:'fuel',ico:'⛽',k:'gasoil_precio',lbl:'Precio gasoil ($/L)',sub:'',def:1600},
   {cat:'fuel',ico:'🚗',k:'km_litro',lbl:'Consumo (km/L)',sub:'Hilux diesel',def:7.5},
-  {cat:'fuel',ico:'🛣️',k:'peaje',lbl:'Peajes USD (ida)',sub:'',def:50},
+  {cat:'fuel',ico:'🛣️',k:'peaje',lbl:'Peajes USD (ida)',sub:'0 si no aplica',def:0},
   {cat:'precios',ico:'💚',k:'p_gt60',lbl:'Precio +60 BB (USD)',sub:'',def:25},
   {cat:'precios',ico:'💛',k:'p_40_60',lbl:'Precio 40-60 BB (USD)',sub:'',def:30},
   {cat:'precios',ico:'🔴',k:'p_lt40',lbl:'Precio -40 BB (USD)',sub:'',def:35},
@@ -310,7 +310,7 @@ function calcEcon(s){
   var ingresoUSD=bb*usdUnit,ingresoPesos=ingresoUSD*tc;
   var litros=km*2/(parseFloat(cfg.km_litro)||7.5);
   var combustEst=litros*(parseFloat(cfg.gasoil_precio)||1600);
-  var peajesEst=(parseFloat(cfg.peaje)||50)*2*tc;
+  var peajesEst=parseFloat(cfg.peaje||0)*2*tc;
   var hotel=Math.max(d-1,0)*(parseFloat(cfg.hotel)||60000)*2;
   var comidas=d*(parseFloat(cfg.ac)||40000)*2;
   var desay=d*(parseFloat(cfg.desay)||30000)*2;
@@ -526,7 +526,7 @@ function renderSvc(){
       var alm2=d*2*(parseFloat(cfg.ac)||40000);
       // Peajes: ida y vuelta, 2 personas
       var tc=parseFloat(cfg.tc)||1150;
-      var peajes2=(parseFloat(cfg.peaje)||50)*2*tc;
+      var peajes2=parseFloat(cfg.peaje||0)*2*tc;
       var totalTransf=desay2+alm2+peajes2;
       var hotelInfo=d>1?'\n🏨 Hotel: '+Math.max(d-1,0)+' noche/s — pagar directo desde admin.':'';
       var msg='Hola Stella! 👋\n\n'+'✅ Servicio confirmado para *'+s.cliente+'*\n'+'📅 Fecha: '+fDate(s.fecha)+'\n'+'📦 Producto: '+(s.producto||'—')+' · '+e.bb+' BB ('+e.tn+' Tn)\n'+'📍 Destino: '+((CLIENTES.find(function(c){return c.n===s.cliente;})||{}).loc||km+' km')+' ('+km+' km)\n'+'👷 Técnicos: Alcides Fabbio y Gabriel Rodriguez\n'+'🗓 Duración estimada: '+d+' día/s\n\n'+'💰 *Transferir a GABRIEL:*\n'+'  · Desayunos ('+d+' días × 2): $'+fNum(desay2)+'\n'+'  · Almuerzos/cenas ('+d+' días × 2): $'+fNum(alm2)+'\n'+(peajes2>0?'  · Peajes nacionales (sin telepeaje): $'+fNum(peajes2)+'\n':'')+  '  ─────────────────\n'+'  *TOTAL: $'+fNum(totalTransf)+'*\n'+hotelInfo+'\n\n⛽ Primer tanque cargado en Dean Funes (cubierto por admin).\n🛣️ Peajes Córdoba: telepeaje — sin transferencia.\n\nGracias!';
@@ -1011,7 +1011,7 @@ function calcViaticos(s){
   var d=e.d,tc=parseFloat(cfg.tc)||1150;
   var desay2=d*2*(parseFloat(cfg.desay)||30000);
   var alm2=d*2*(parseFloat(cfg.ac)||40000);
-  var peajes2=(parseFloat(cfg.peaje)||50)*2*tc;
+  var peajes2=parseFloat(cfg.peaje||0)*2*tc;
   return Math.round(desay2+alm2+peajes2);
 }
 function exportarGastosExcel(svcId){
