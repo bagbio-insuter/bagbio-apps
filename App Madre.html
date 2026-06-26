@@ -508,7 +508,7 @@ function viat(km,d,kmd){
   var tc=parseFloat(cfg.tc)||1150;
   var desay2=d*2*(parseFloat(cfg.desay)||30000);
   var alm2=d*2*(parseFloat(cfg.ac)||40000);
-  var peajes2=(parseFloat(cfg.peaje)||50)*2*tc;
+  var peajes2=(cfg.peaje!==undefined&&cfg.peaje!==''?parseFloat(cfg.peaje):50)*2*tc;
   return Math.round(desay2+alm2+peajes2);
 }
 function toast(msg){var t=n('toast');t.textContent=msg;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2600);}
@@ -807,6 +807,12 @@ n('btn-save-rec').addEventListener('click',function(){
   r.n=n('er-nom').value;r.v=parseFloat(n('er-vac').value);r.tv=parseFloat(n('er-tv').value);
   r.n2=parseFloat(n('er-n2').value);r.co2=parseFloat(n('er-co2').value);r.o2=parseFloat(n('er-o2').value);
   lsSet('bb_rec',JSON.stringify(RECETAS));
+  // Guardar en Supabase para persistir en todos los dispositivos
+  fetch(SB_URL+'/rest/v1/config',{
+    method:'POST',
+    headers:Object.assign({'Prefer':'resolution=merge-duplicates'},sbH()),
+    body:JSON.stringify({clave:'recetas_json',valor:JSON.stringify(RECETAS)})
+  }).catch(function(){});
   closeModal('modal-rec');renderRecetas();populateRecSelect();toast('✅ Receta '+id+' actualizada');
 });
 
@@ -897,7 +903,7 @@ function renderCfg(){
 
 
 n('btn-save-cfg').addEventListener('click',function(){
-  CFG_DEFS.forEach(function(d){var el=n('cfg-'+d.k);if(el)cfg[d.k]=(d.tp==='email'||d.tp==='text')?el.value:(parseFloat(el.value)||d.def);});
+  CFG_DEFS.forEach(function(d){var el=n('cfg-'+d.k);if(el)cfg[d.k]=(d.tp==='email'||d.tp==='text')?el.value:(el.value!==''?parseFloat(el.value):d.def);});
   lsSet('bb_c',JSON.stringify(cfg));
   // Guardar cada clave en Supabase para que no se pise al sincronizar
   var promises=Object.keys(cfg).map(function(k){
@@ -935,7 +941,10 @@ function syncData(){
     sbGet('clientes','select=*&order=nombre.asc')
   ]).then(function(res){
     var cfgR=res[0],svcs=res[1],chkR=res[2],clis=res[3];
-    if(Array.isArray(cfgR))cfgR.forEach(function(r){if(r.clave)cfg[r.clave]=r.valor;});
+    if(Array.isArray(cfgR))cfgR.forEach(function(r){
+      if(r.clave==='recetas_json'){try{var rp=JSON.parse(r.valor);if(rp&&rp.length)RECETAS=rp;lsSet('bb_rec',r.valor);}catch(e){}}
+      else if(r.clave)cfg[r.clave]=r.valor;
+    });
     if(Array.isArray(svcs)){
       // Merge: keep local services not yet in Supabase
       var sbIds=svcs.map(function(s){return s.id;});
