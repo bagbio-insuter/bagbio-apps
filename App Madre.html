@@ -604,7 +604,22 @@ n('btn-gen-msg').addEventListener('click',function(){
   var tipoLbl=tipo==='sellado'?'Solo Sellado + Tratamiento':'Envasado + Tratamiento';
   var recObj=rec?RECETAS.find(function(r){return r.id==rec;}):null;
   var recLbl=recObj?recObj.n:'(sin asignar)';
-    var msgD='✅ SERVICIO CONFIRMADO\nCliente: '+cl2+'\nProducto: '+prodLine+' — '+tipoLbl+'\nBig Bags totales: '+bbTotal+' ('+tonsTotal+' Tn)\nReceta N°: '+(rec||'—')+(rec?' ('+recLbl+')':'')+' | Duración: '+d+' día/s'+(fecha?' | Fecha: '+fDate(fecha):'')+' \nTécnicos: Alcides Fabbio y Gabriel Rodriguez\nViáticos aprox: $'+fNum(v)+'\n→ Pedirle a Stella que transfiera ese monto.';
+  // Detectar servicio consecutivo al día siguiente
+  var hotelAlert='';
+  if(fecha){
+    var fechaBase=new Date(fecha+'T12:00:00');
+    var fechaFin=new Date(fechaBase);
+    fechaFin.setDate(fechaFin.getDate()+d); // día en que termina = fecha inicio + duración
+    var fechaFinStr=fechaFin.toISOString().slice(0,10);
+    var svcConsec=servicios.filter(function(s){return s.estado!=='Eliminado'&&s.fecha===fechaFinStr&&s.cliente!==cl2;});
+    if(svcConsec.length>0){
+      var noche=new Date(fechaBase);
+      noche.setDate(noche.getDate()+d-1);
+      var nocheStr=fDate(noche.toISOString().slice(0,10));
+      hotelAlert='\n\n🏨 RESERVAR HOTEL: noche del '+nocheStr+' — al día siguiente hay servicio en '+svcConsec.map(function(s){return s.cliente;}).join(', ')+'.';
+    }
+  }
+    var msgD='✅ SERVICIO CONFIRMADO\nCliente: '+cl2+'\nProducto: '+prodLine+' — '+tipoLbl+'\nBig Bags totales: '+bbTotal+' ('+tonsTotal+' Tn)\nReceta N°: '+(rec||'—')+(rec?' ('+recLbl+')':'')+' | Duración: '+d+' día/s'+(fecha?' | Fecha: '+fDate(fecha):'')+' \nTécnicos: Alcides Fabbio y Gabriel Rodriguez\nViáticos aprox: $'+fNum(v)+'\n→ Pedirle a Stella que transfiera ese monto.'+hotelAlert;
   n('txt-dana').textContent=msgD;
   n('msg-dana').style.display='block';
   var litN2=bbTotal*(recObj?parseFloat(recObj.n2)||800:800);
