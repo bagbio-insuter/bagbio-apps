@@ -899,8 +899,15 @@ function renderCfg(){
 n('btn-save-cfg').addEventListener('click',function(){
   CFG_DEFS.forEach(function(d){var el=n('cfg-'+d.k);if(el)cfg[d.k]=(d.tp==='email'||d.tp==='text')?el.value:(parseFloat(el.value)||d.def);});
   lsSet('bb_c',JSON.stringify(cfg));
-  if(apiUrl)postAPI('saveConfig',cfg);
-  toast('✅ Configuración guardada');
+  // Guardar cada clave en Supabase para que no se pise al sincronizar
+  var promises=Object.keys(cfg).map(function(k){
+    return fetch(SB_URL+'/rest/v1/config',{
+      method:'POST',
+      headers:Object.assign({'Prefer':'resolution=merge-duplicates'},sbH()),
+      body:JSON.stringify({clave:k,valor:String(cfg[k])})
+    }).catch(function(){});
+  });
+  Promise.all(promises).then(function(){toast('✅ Configuración guardada');});
 });
 
 n('syncBtn').addEventListener('click',syncData);
