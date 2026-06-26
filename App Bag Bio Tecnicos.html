@@ -175,6 +175,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
           <option value="Otro">📌 Otro</option>
         </select></div>
       </div>
+      <div class="field"><label>Proveedor / Comercio</label><input type="text" id="gas-prov" placeholder="ej: YPF, Restaurant El Sol..."></div>
       <div class="row2">
         <div class="field"><label>Monto ($)</label><input type="number" id="gas-monto" placeholder="ej: 5000"></div>
         <div class="field"><label>N° Comprobante</label><input type="text" id="gas-comp" placeholder="ej: 0001-00123"></div>
@@ -320,7 +321,7 @@ function syncData(){
     var pendientes=gastos.filter(function(g){return !g.sb_synced;});
     if(pendientes.length>0){
       var promises=pendientes.map(function(g){
-        return sbInsert('gastos',{servicio_id:g.svcId||selectedSvcId,tipo:g.tipo,monto:g.monto,nro_comprobante:g.comp||'',tipo_comprobante:g.tcomp||'',obs:g.obs||'',foto:g.foto||''}).then(function(ok){if(ok)g.sb_synced=true;});
+        return sbInsert('gastos',{servicio_id:g.svcId||selectedSvcId,tipo:g.tipo,monto:g.monto,proveedor:g.prov||'',nro_comprobante:g.comp||'',tipo_comprobante:g.tcomp||'',obs:g.obs||'',foto:g.foto||''}).then(function(ok){if(ok)g.sb_synced=true;});
       });
       Promise.all(promises).then(function(){lsSet('bbt_gas',JSON.stringify(gastos));});
     }
@@ -507,7 +508,7 @@ function renderGastos(){
   mine.forEach(function(g){
     html+='<div class="gasto-item" style="display:flex;align-items:flex-start;gap:8px">';
     html+='<div style="flex:1">';
-    html+='<b>'+g.tipo+'</b> — <b style="color:var(--vm)">$'+fNum(parseFloat(g.monto))+'</b>';
+    html+='<b>'+g.tipo+'</b>'+(g.prov?' · <span style="color:#555">'+g.prov+'</span>':'')+' — <b style="color:var(--vm)">$'+fNum(parseFloat(g.monto))+'</b>';
     if(g.comp)html+='<br><span style="color:#888">Comp: '+g.comp+'</span>';
     if(g.obs)html+='<br><span style="color:#aaa">'+g.obs+'</span>';
     if(g.foto)html+='<br><img src="'+g.foto+'" style="max-width:100%;border-radius:6px;margin-top:4px">';
@@ -535,11 +536,11 @@ n('gas-btn-add').addEventListener('click',function(){
   if(!monto){toast('Ingresá el monto');return;}
   var fotoFile=n('gas-foto').files[0];
   function guardarGasto(fotoData){
-    var g={id:Date.now()+'',svcId:s.id,tipo:n('gas-tipo').value,monto:parseFloat(monto),comp:n('gas-comp').value,tcomp:n('gas-tcomp').value,obs:n('gas-obs').value,foto:fotoData||''};
+    var g={id:Date.now()+'',svcId:s.id,tipo:n('gas-tipo').value,monto:parseFloat(monto),prov:n('gas-prov').value,comp:n('gas-comp').value,tcomp:n('gas-tcomp').value,obs:n('gas-obs').value,foto:fotoData||''};
     gastos.push(g);
     lsSet('bbt_gas',JSON.stringify(gastos));
-    try{sbInsert('gastos',{servicio_id:s.id,tipo:g.tipo,monto:g.monto,nro_comprobante:g.comp||'',tipo_comprobante:g.tcomp||'',obs:g.obs||'',foto:g.foto||''}).catch(function(){});}catch(e){}
-    n('gas-monto').value='';n('gas-comp').value='';n('gas-tcomp').value='';n('gas-obs').value='';n('gas-foto').value='';
+    try{sbInsert('gastos',{servicio_id:s.id,tipo:g.tipo,monto:g.monto,proveedor:g.prov||'',nro_comprobante:g.comp||'',tipo_comprobante:g.tcomp||'',obs:g.obs||'',foto:g.foto||''}).catch(function(){});}catch(e){}
+    n('gas-monto').value='';n('gas-prov').value='';n('gas-comp').value='';n('gas-tcomp').value='';n('gas-obs').value='';n('gas-foto').value='';
     renderGastos();
     toast('Gasto registrado ✓');
   }
