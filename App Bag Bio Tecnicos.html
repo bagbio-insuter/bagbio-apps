@@ -218,6 +218,41 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
   </div>
 </div>
 
+
+<div class="screen" id="sc-hilux">
+  <div id="hx-alert-bar" style="display:none;background:#C62828;color:white;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-weight:700;font-size:13px;text-align:center"></div>
+  <div class="card">
+    <div class="card-title">🚐 Toyota Hilux — KM</div>
+    <div class="row2" style="margin-bottom:10px">
+      <div class="field">
+        <label>KM actuales</label>
+        <input type="number" id="hx-km-act" placeholder="ej: 87500">
+      </div>
+      <div class="field">
+        <label>Intervalo service</label>
+        <input type="number" id="hx-intervalo" placeholder="ej: 10000">
+      </div>
+    </div>
+    <div class="row2" style="margin-bottom:10px">
+      <div class="field">
+        <label>KM último service</label>
+        <input type="number" id="hx-km-srv" placeholder="ej: 82000">
+      </div>
+      <div class="field">
+        <label>Fecha último service</label>
+        <input type="date" id="hx-fecha-srv">
+      </div>
+    </div>
+    <div id="hx-status" style="background:#f5f5f5;border-radius:8px;padding:12px;margin-bottom:10px;font-size:13px;line-height:1.9"></div>
+    <button class="btn btn-g" id="hx-btn-save" style="margin-bottom:8px">💾 Guardar KM</button>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Historial de KM</div>
+    <div id="hx-historial" style="font-size:12px;color:#555"></div>
+    <button class="btn btn-out" id="hx-btn-reg" style="margin-top:10px">✅ Registrar lectura de hoy</button>
+  </div>
+</div>
+
 </div><!-- end .content -->
 
 <div class="tabs">
@@ -226,6 +261,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
   <button class="tab" data-screen="envases"><span class="ico">📦</span>Envases</button>
   <button class="tab" data-screen="gastos"><span class="ico">💰</span>Gastos</button>
   <button class="tab" data-screen="cerrar"><span class="ico">🔒</span>Cerrar</button>
+  <button class="tab" data-screen="hilux"><span class="ico">🚐</span>Hilux</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -282,6 +318,7 @@ document.querySelectorAll('.tab').forEach(function(tb){
     if(sc==='envases')renderEnvases();
     if(sc==='gastos')renderGastos();
     if(sc==='cerrar')renderCerrar();
+    if(sc==='hilux')renderHilux();
   });
 });
 
@@ -602,6 +639,81 @@ n('cer-btn-jo').addEventListener('click',function(){
   var msg='✅ *SERVICIO COMPLETADO — BAG BIO*\n'+'Cliente: '+s.cliente+'\nProducto: '+(s.producto||'—')+' · '+tons+' Tn\nFecha: '+fDate(s.fecha)+'\nEnvases fallados: '+mine_env.length+'\nTotal gastos: $'+fNum(total_gas)+'\n'+(obs?'Obs: '+obs+'\n':'')+'\n— Alcides / Gabriel';
   var tel='5493516096851';
   window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
+});
+
+
+// ===== MÓDULO HILUX =====
+var HX_KEY='bb_hx';
+var hxData=JSON.parse(lsGet(HX_KEY,JSON.stringify({kmAct:0,kmSrv:0,fechaSrv:'',intervalo:10000,historial:[]})));
+
+function renderHilux(){
+  var km=parseInt(hxData.kmAct)||0;
+  var ks=parseInt(hxData.kmSrv)||0;
+  var intv=parseInt(hxData.intervalo)||10000;
+  var next=ks+intv;
+  var restantes=next-km;
+  var desde=km-ks;
+  n('hx-km-act').value=km||'';
+  n('hx-km-srv').value=ks||'';
+  n('hx-fecha-srv').value=hxData.fechaSrv||'';
+  n('hx-intervalo').value=intv||'';
+  var color=restantes<=0?'#C62828':restantes<=1500?'#E65100':'#2E7D32';
+  var estadoTxt=restantes<=0?'⚠️ SERVICE VENCIDO':'✅ OK';
+  n('hx-status').innerHTML=
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+    '<div><span style="font-size:10px;color:#888">KM DESDE ÚLTIMO SERVICE</span><br><b style="font-size:18px;color:'+color+'">'+desde.toLocaleString('es-AR')+'</b></div>'+
+    '<div><span style="font-size:10px;color:#888">KM PARA PRÓXIMO SERVICE</span><br><b style="font-size:18px;color:'+color+'">'+Math.max(restantes,0).toLocaleString('es-AR')+'</b></div>'+
+    '<div><span style="font-size:10px;color:#888">PRÓXIMO SERVICE A LOS</span><br><b>'+next.toLocaleString('es-AR')+' km</b></div>'+
+    '<div><span style="font-size:10px;color:#888">ESTADO</span><br><b style="color:'+color+'">'+estadoTxt+'</b></div>'+
+    '</div>';
+  if(restantes<=1500){
+    n('hx-alert-bar').style.display='block';
+    n('hx-alert-bar').textContent=restantes<=0?'🚨 SERVICE VENCIDO — Avisar a administración!':'⚠️ Service en '+restantes+' km — Avisar a administración';
+  } else {
+    n('hx-alert-bar').style.display='none';
+  }
+  var h=hxData.historial||[];
+  if(h.length===0){n('hx-historial').innerHTML='<p style="color:#aaa;font-style:italic">Sin registros aún</p>';}
+  else{
+    var hl='';
+    h.slice().reverse().slice(0,10).forEach(function(e){
+      hl+='<div style="border-bottom:1px solid #eee;padding:6px 0">'+
+          '<b>'+e.km.toLocaleString('es-AR')+' km</b> — <span style="color:#888">'+e.fecha+'</span>'+
+          '</div>';
+    });
+    n('hx-historial').innerHTML=hl;
+  }
+}
+
+n('hx-btn-save').addEventListener('click',function(){
+  hxData.kmAct=parseInt(n('hx-km-act').value)||hxData.kmAct;
+  hxData.kmSrv=parseInt(n('hx-km-srv').value)||hxData.kmSrv;
+  hxData.fechaSrv=n('hx-fecha-srv').value||hxData.fechaSrv;
+  hxData.intervalo=parseInt(n('hx-intervalo').value)||hxData.intervalo;
+  lsSet(HX_KEY,JSON.stringify(hxData));
+  // Sync to Supabase config so App Madre sees the same data
+  fetch(SB_URL+'/rest/v1/config',{
+    method:'POST',
+    headers:Object.assign({'Prefer':'resolution=merge-duplicates'},sbH()),
+    body:JSON.stringify({clave:'bb_hx',valor:JSON.stringify(hxData)})
+  }).catch(function(){});
+  renderHilux();
+  toast('KM guardados ✅');
+});
+
+n('hx-btn-reg').addEventListener('click',function(){
+  var km=parseInt(n('hx-km-act').value)||0;
+  if(!km){toast('Primero ingresá los KM actuales');return;}
+  var hoy=new Date().toISOString().slice(0,10);
+  hxData.historial.push({km:km,fecha:hoy});
+  lsSet(HX_KEY,JSON.stringify(hxData));
+  fetch(SB_URL+'/rest/v1/config',{
+    method:'POST',
+    headers:Object.assign({'Prefer':'resolution=merge-duplicates'},sbH()),
+    body:JSON.stringify({clave:'bb_hx',valor:JSON.stringify(hxData)})
+  }).catch(function(){});
+  renderHilux();
+  toast('Lectura registrada ✅');
 });
 
 // Init
