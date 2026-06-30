@@ -272,8 +272,10 @@ var CFG_DEFS=[
   {cat:'precios',ico:'💱',k:'tc',lbl:'Tipo de cambio ($/USD)',sub:'',def:1150},
   {cat:'personal',ico:'👷',k:'jornal',lbl:'Jornal ($/dia)',sub:'Por persona',def:60000},
   {cat:'personal',ico:'🏨',k:'hotel',lbl:'Hotel ($/noche)',sub:'Por persona',def:60000},
-  {cat:'personal',ico:'🍽️',k:'ac',lbl:'Almuerzo+cena ($/dia)',sub:'',def:40000},
-  {cat:'personal',ico:'☕',k:'desay',lbl:'Desayuno ($/dia)',sub:'',def:30000},
+  {cat:'personal',ico:'☕',k:'desay',lbl:'Desayuno ($/persona/dia)',sub:'',def:9000},
+  {cat:'personal',ico:'🥐',k:'merienda',lbl:'Merienda ($/persona/dia)',sub:'',def:9000},
+  {cat:'personal',ico:'🍽️',k:'almuerzo',lbl:'Almuerzo ($/persona/dia)',sub:'',def:20000},
+  {cat:'personal',ico:'🌙',k:'cena',lbl:'Cena ($/persona/dia)',sub:'',def:20000},
   {cat:'personal',ico:'✉️',k:'email_jesi',lbl:'Email Jesi (contadora)',sub:'',def:'administracion@insuter.com.ar',tp:'email'},
   {cat:'personal',ico:'📧',k:'email_dana',lbl:'Email Dana',sub:'',def:'secretaria@insuter.com.ar',tp:'email'},
 ];
@@ -312,8 +314,11 @@ function calcEcon(s){
   var combustEst=litros*(parseFloat(cfg.gasoil_precio)||1600);
   var peajesEst=parseFloat(cfg.peaje||0)*2*tc;
   var hotel=Math.max(d-1,0)*(parseFloat(cfg.hotel)||60000)*2;
-  var comidas=d*(parseFloat(cfg.ac)||40000)*2;
-  var desay=d*(parseFloat(cfg.desay)||30000)*2;
+  var desay=d*(parseFloat(cfg.desay)||9000)*2;
+  var merienda=d*(parseFloat(cfg.merienda)||9000)*2;
+  var almuerzo=d*(parseFloat(cfg.almuerzo)||20000)*2;
+  var cena=d*(parseFloat(cfg.cena)||20000)*2;
+  var comidas=desay+merienda+almuerzo+cena;
   var jornal=d*(parseFloat(cfg.jornal)||60000)*2;
   var costoEst=combustEst+peajesEst+hotel+comidas+desay+jornal;
   var gastosReal=totalGastos(s.id);
@@ -521,20 +526,26 @@ function renderSvc(){
       if(!s)return;
       var e=calcEcon(s);
       var d=e.d,km=e.km;
-      // Viáticos: 2 personas × días × (desayuno + almuerzo/cena + merienda)
-      var desay2=d*2*(parseFloat(cfg.desay)||30000);
-      var alm2=d*2*(parseFloat(cfg.ac)||40000);
-      // Peajes: ida y vuelta, 2 personas
+      // Viáticos: 2 personas por cada ítem
       var tc=parseFloat(cfg.tc)||1150;
-      var peajes2=parseFloat(cfg.peaje||0)*2*tc;
-      var totalTransf=desay2+alm2; // peajes no se transfieren: operarios los rinden como gastos
-      var hotelInfo=d>1?'\n🏨 Hotel: '+Math.max(d-1,0)+' noche/s — pagar directo desde admin.':'';
-      var msg='Hola Stella! 👋\n\n'+'✅ Servicio confirmado para *'+s.cliente+'*\n'+'📅 Fecha: '+fDate(s.fecha)+'\n'+'📦 Producto: '+(s.producto||'—')+' · '+e.bb+' BB ('+e.tn+' Tn)\n'+'📍 Destino: '+((CLIENTES.find(function(c){return c.n===s.cliente;})||{}).loc||km+' km')+' ('+km+' km)\n'+'👷 Técnicos: Alcides Fabbio y Gabriel Rodriguez\n'+'🗓 Duración estimada: '+d+' día/s\n\n'+'💰 *Transferir a GABRIEL:*\n'+'  · Desayunos ('+d+' días × 2): $'+fNum(desay2)+'\n'+'  · Almuerzos/cenas ('+d+' días × 2): $'+fNum(alm2)+'\n'+  '  ─────────────────\n'+'  *TOTAL: $'+fNum(totalTransf)+'*\n'+hotelInfo+'\n\n⛽ Primer tanque cargado en Dean Funes (cubierto por admin).\n🛣️ Peajes Córdoba: telepeaje — sin transferencia.\n\nGracias!';
+      var pDesay=parseFloat(cfg.desay)||9000;
+      var pMer=parseFloat(cfg.merienda)||9000;
+      var pAlm=parseFloat(cfg.almuerzo)||20000;
+      var pCena=parseFloat(cfg.cena)||20000;
+      var nochesHotel=Math.max(d-1,0); // noches que duermen afuera
+      var cenasExtra=parseInt(prompt('🌙 ¿Cuántas cenas extra agregar? (noches adicionales, 0 si no hay)',nochesHotel))||0;
+      var desay2=d*2*pDesay;
+      var merienda2=d*2*pMer;
+      var alm2=d*2*pAlm;
+      var cena2=cenasExtra*2*pCena;
+      var totalTransf=desay2+merienda2+alm2+cena2;
+      var hotelInfo=nochesHotel>0?'\n🏨 Hotel: '+nochesHotel+' noche/s — pagar directo desde admin.':'';
+      var msg='Hola Stella! 👋\n\n'+'✅ Servicio confirmado para *'+s.cliente+'*\n'+'📅 Fecha: '+fDate(s.fecha)+'\n'+'📦 Producto: '+(s.producto||'—')+' · '+e.bb+' BB ('+e.tn+' Tn)\n'+'📍 Destino: '+((CLIENTES.find(function(c){return c.n===s.cliente;})||{}).loc||km+' km')+' ('+km+' km)\n'+'👷 Técnicos: Alcides Fabbio y Gabriel Rodriguez\n'+'🗓 Duración estimada: '+d+' día/s\n\n'+'💰 *Transferir a GABRIEL:*\n'+'  · Desayunos ('+d+' días × 2): $'+fNum(desay2)+'\n'+'  · Meriendas ('+d+' días × 2): $'+fNum(merienda2)+'\n'+'  · Almuerzos ('+d+' días × 2): $'+fNum(alm2)+'\n'+(cena2>0?'  · Cenas ('+cenasExtra+' noches × 2): $'+fNum(cena2)+'\n':'')+'  ─────────────────\n'+'  *TOTAL: $'+fNum(totalTransf)+'*\n'+hotelInfo+'\n\n⛽ Primer tanque cargado en Dean Funes (cubierto por admin).\n🛣️ Peajes Córdoba: telepeaje — sin transferencia.\n\nGracias!';
       var tel='5493516888529';
       window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
       // Generar comprobante de viáticos
       setTimeout(function(){
-        genComprobanteViaticos(s,{d:d,km:km,desay2:desay2,alm2:alm2,peajes2:peajes2,totalTransf:totalTransf,tc:tc});
+        genComprobanteViaticos(s,{d:d,km:km,desay2:desay2,merienda2:merienda2,alm2:alm2,cena2:cena2,cenasExtra:cenasExtra,totalTransf:totalTransf,tc:tc});
       },800);
     });
   });
@@ -1009,10 +1020,12 @@ function genComprobanteViaticos(s, datos){
 function calcViaticos(s){
   var e=calcEcon(s);
   var d=e.d,tc=parseFloat(cfg.tc)||1150;
-  var desay2=d*2*(parseFloat(cfg.desay)||30000);
-  var alm2=d*2*(parseFloat(cfg.ac)||40000);
-  var peajes2=parseFloat(cfg.peaje||0)*2*tc;
-  return Math.round(desay2+alm2+peajes2);
+  var desay2=d*2*(parseFloat(cfg.desay)||9000);
+  var merienda2=d*2*(parseFloat(cfg.merienda)||9000);
+  var alm2=d*2*(parseFloat(cfg.almuerzo)||20000);
+  var nochesH=Math.max(d-1,0);
+  var cena2=nochesH*2*(parseFloat(cfg.cena)||20000);
+  return Math.round(desay2+merienda2+alm2+cena2);
 }
 function exportarGastosExcel(svcId){
   var s=servicios.find(function(x){return x.id===svcId;});
