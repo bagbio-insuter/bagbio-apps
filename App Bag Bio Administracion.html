@@ -270,7 +270,7 @@ var CFG_DEFS=[
   {cat:'precios',ico:'💛',k:'p_40_60',lbl:'Precio 40-60 BB (USD)',sub:'',def:30},
   {cat:'precios',ico:'🔴',k:'p_lt40',lbl:'Precio -40 BB (USD)',sub:'',def:35},
   {cat:'precios',ico:'💱',k:'tc',lbl:'Tipo de cambio ($/USD)',sub:'',def:1150},
-  {cat:'personal',ico:'👷',k:'jornal',lbl:'Jornal ($/dia)',sub:'Por persona',def:60000},
+  {cat:'personal',ico:'👷',k:'jornal',lbl:'Jornal ($/dia)',sub:'Por persona',def:30000},
   {cat:'personal',ico:'🏨',k:'hotel',lbl:'Hotel ($/noche)',sub:'Por persona',def:60000},
   {cat:'personal',ico:'☕',k:'desay',lbl:'Desayuno ($/persona/dia)',sub:'',def:9000},
   {cat:'personal',ico:'🥐',k:'merienda',lbl:'Merienda ($/persona/dia)',sub:'',def:9000},
@@ -320,7 +320,7 @@ function calcEcon(s){
   var almuerzo=d*(parseFloat(cfg.almuerzo)||20000)*2;
   var cena=d*(parseFloat(cfg.cena)||20000)*2;
   var comidas=desay+merienda+almuerzo+cena;
-  var jornal=d*(parseFloat(cfg.jornal)||60000)*2;
+  var jornal=d*(parseFloat(cfg.jornal)||30000)*2;
   var costoEst=combustEst+peajesEst+hotel+comidas+desay+jornal;
   var gastosReal=totalGastos(s.id);
   var costoReal=gastosReal>0?gastosReal+jornal:costoEst;
@@ -596,7 +596,7 @@ function renderLiq(){
     var rows='';
     svcMes.forEach(function(s){
       var e=calcEcon(s);
-      var jT=e.d*(parseFloat(cfg.jornal)||60000);
+      var jT=e.d*(parseFloat(cfg.jornal)||30000);
       // Gastos reales del técnico (mitad del total del servicio ya que son 2 técnicos)
       var gTotal=totalGastos(s.id);
       var gT=gTotal>0?gTotal/2:0;
@@ -609,7 +609,7 @@ function renderLiq(){
       rows+='<div class="svc-row-break">Jornal: $'+fNum(jT)+(gT>0?' | Gs: $'+fNum(gT):'')+'</div></div></div>';
     });
     // Sumar días extra manuales
-    var jornal=parseFloat(cfg.jornal)||60000;
+    var jornal=parseFloat(cfg.jornal)||30000;
     totalD+=extraD;
     totalJ+=extraD*jornal;
     var total=totalJ+totalG;
@@ -761,7 +761,7 @@ function genRecibo(tec,mes,anio){
     if(!s.fecha)return false;var p=s.fecha.split('-');
     return parseInt(p[1])-1===mes&&parseInt(p[0])===anio;
   });
-  var jornal=parseFloat(cfg.jornal)||60000;
+  var jornal=parseFloat(cfg.jornal)||30000;
   var extraD=liqExtra[tec]||0;
   var filas='';var totalDias=0,totalPesos=0;
   svcMes.forEach(function(s){
