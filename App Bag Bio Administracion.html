@@ -581,7 +581,8 @@ function renderSvc(){
 function renderLiq(){
   var val=n('mes-sel').value.split('-');
   var mes=parseInt(val[0]),anio=parseInt(val[1]);
-  var svcMes=servicios.filter(function(s){
+  // Solo servicios activos (no Eliminados) del mes seleccionado
+  var svcMes=visibles.filter(function(s){
     if(!s.fecha)return false;
     var p=s.fecha.split('-');
     return parseInt(p[1])-1===mes&&parseInt(p[0])===anio;
@@ -594,14 +595,16 @@ function renderLiq(){
     svcMes.forEach(function(s){
       var e=calcEcon(s);
       var jT=e.d*(parseFloat(cfg.jornal)||60000);
-      var gT=totalGastos(s.id)/2;
+      // Gastos reales del técnico (mitad del total del servicio ya que son 2 técnicos)
+      var gTotal=totalGastos(s.id);
+      var gT=gTotal>0?gTotal/2:0;
       totalJ+=jT;totalG+=gT;totalD+=e.d;
       rows+='<div class="svc-row">';
       rows+='<div class="svc-row-ico">🏭</div>';
       rows+='<div class="svc-row-info"><div class="svc-row-name">'+s.cliente+'</div>';
       rows+='<div class="svc-row-det">'+fDate(s.fecha)+' &middot; '+s.producto+' &middot; '+e.d+' dia/s</div></div>';
       rows+='<div class="svc-row-val"><div class="svc-row-total">$'+fNum(jT+gT)+'</div>';
-      rows+='<div class="svc-row-break">Jornal: $'+fNum(jT)+' | Gs: $'+fNum(gT)+'</div></div></div>';
+      rows+='<div class="svc-row-break">Jornal: $'+fNum(jT)+(gT>0?' | Gs: $'+fNum(gT):'')+'</div></div></div>';
     });
     var total=totalJ+totalG;
     html+='<div class="tec-card">';
