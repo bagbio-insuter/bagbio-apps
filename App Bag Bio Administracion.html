@@ -756,11 +756,13 @@ document.addEventListener('click',function(e){
 });
 
 function genRecibo(tec,mes,anio){
-  var svcMes=servicios.filter(function(s){
+  // Solo servicios activos (no Eliminados), igual que renderLiq
+  var svcMes=visibles.filter(function(s){
     if(!s.fecha)return false;var p=s.fecha.split('-');
     return parseInt(p[1])-1===mes&&parseInt(p[0])===anio;
   });
   var jornal=parseFloat(cfg.jornal)||60000;
+  var extraD=liqExtra[tec]||0;
   var filas='';var totalDias=0,totalPesos=0;
   svcMes.forEach(function(s){
     var e=calcEcon(s);var jT=e.d*jornal;
@@ -769,12 +771,19 @@ function genRecibo(tec,mes,anio){
       +'<td style="text-align:center">'+e.d+'</td><td style="text-align:right">$'+fNum(jornal)+'</td>'
       +'<td style="text-align:right">$'+fNum(jT)+'</td></tr>';
   });
+  // Días extra manuales
+  if(extraD>0){
+    totalDias+=extraD;totalPesos+=extraD*jornal;
+    filas+='<tr style="background:#fff3e0"><td colspan="3" style="color:#E65100;font-style:italic">Días extra (ajuste manual)</td>'
+      +'<td style="text-align:center">'+extraD+'</td><td style="text-align:right">$'+fNum(jornal)+'</td>'
+      +'<td style="text-align:right">$'+fNum(extraD*jornal)+'</td></tr>';
+  }
   var mesNombre=MESES[mes]+' '+anio;
   var preview='<div style="font-size:11px;color:#666;margin-bottom:4px">Técnico</div>'
     +'<div style="font-size:17px;font-weight:800;color:#1a237e;margin-bottom:8px">'+tec+'</div>'
     +'<div style="display:flex;gap:20px">'
     +'<div><div style="font-size:10px;color:#888">Período</div><b>'+mesNombre+'</b></div>'
-    +'<div><div style="font-size:10px;color:#888">Días</div><b>'+totalDias+'</b></div>'
+    +'<div><div style="font-size:10px;color:#888">Días</div><b>'+totalDias+(extraD>0?' (+'+extraD+' extra)':'')+'</b></div>'
     +'<div><div style="font-size:10px;color:#888">Total a cobrar</div><b style="font-size:18px;color:#2E7D32">$'+fNum(totalPesos)+'</b></div>'
     +'</div>';
   mostrarFirma(preview,'Firmá para confirmar recepción del pago',function(firmaImg){
