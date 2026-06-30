@@ -527,9 +527,9 @@ function renderSvc(){
       // Peajes: ida y vuelta, 2 personas
       var tc=parseFloat(cfg.tc)||1150;
       var peajes2=parseFloat(cfg.peaje||0)*2*tc;
-      var totalTransf=desay2+alm2+peajes2;
+      var totalTransf=desay2+alm2; // peajes no se transfieren: operarios los rinden como gastos
       var hotelInfo=d>1?'\n🏨 Hotel: '+Math.max(d-1,0)+' noche/s — pagar directo desde admin.':'';
-      var msg='Hola Stella! 👋\n\n'+'✅ Servicio confirmado para *'+s.cliente+'*\n'+'📅 Fecha: '+fDate(s.fecha)+'\n'+'📦 Producto: '+(s.producto||'—')+' · '+e.bb+' BB ('+e.tn+' Tn)\n'+'📍 Destino: '+((CLIENTES.find(function(c){return c.n===s.cliente;})||{}).loc||km+' km')+' ('+km+' km)\n'+'👷 Técnicos: Alcides Fabbio y Gabriel Rodriguez\n'+'🗓 Duración estimada: '+d+' día/s\n\n'+'💰 *Transferir a GABRIEL:*\n'+'  · Desayunos ('+d+' días × 2): $'+fNum(desay2)+'\n'+'  · Almuerzos/cenas ('+d+' días × 2): $'+fNum(alm2)+'\n'+(peajes2>0?'  · Peajes nacionales (sin telepeaje): $'+fNum(peajes2)+'\n':'')+  '  ─────────────────\n'+'  *TOTAL: $'+fNum(totalTransf)+'*\n'+hotelInfo+'\n\n⛽ Primer tanque cargado en Dean Funes (cubierto por admin).\n🛣️ Peajes Córdoba: telepeaje — sin transferencia.\n\nGracias!';
+      var msg='Hola Stella! 👋\n\n'+'✅ Servicio confirmado para *'+s.cliente+'*\n'+'📅 Fecha: '+fDate(s.fecha)+'\n'+'📦 Producto: '+(s.producto||'—')+' · '+e.bb+' BB ('+e.tn+' Tn)\n'+'📍 Destino: '+((CLIENTES.find(function(c){return c.n===s.cliente;})||{}).loc||km+' km')+' ('+km+' km)\n'+'👷 Técnicos: Alcides Fabbio y Gabriel Rodriguez\n'+'🗓 Duración estimada: '+d+' día/s\n\n'+'💰 *Transferir a GABRIEL:*\n'+'  · Desayunos ('+d+' días × 2): $'+fNum(desay2)+'\n'+'  · Almuerzos/cenas ('+d+' días × 2): $'+fNum(alm2)+'\n'+  '  ─────────────────\n'+'  *TOTAL: $'+fNum(totalTransf)+'*\n'+hotelInfo+'\n\n⛽ Primer tanque cargado en Dean Funes (cubierto por admin).\n🛣️ Peajes Córdoba: telepeaje — sin transferencia.\n\nGracias!';
       var tel='5493516888529';
       window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
       // Generar comprobante de viáticos
