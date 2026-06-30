@@ -357,6 +357,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
         <option>Pendiente</option><option>Confirmado</option><option>En curso</option><option>Completado</option>
       </select></div></div>
     <div class="field"><label>🏨 Noches de hotel extra</label><input type="number" id="f-hotel" value="0" min="0" placeholder="0"></div>
+    <div class="field"><label>📅 Días extra (viáticos)</label><input type="number" id="f-dias-extra" value="0" min="0" placeholder="0"></div>
     <div class="field"><label>Observaciones</label><input type="text" id="f-obs" placeholder="Opcional..."></div>
     <div id="dias-badge" style="display:none" class="dias-b"></div>
     <div id="msg-dana" style="display:none" class="msg-box dana">
@@ -469,8 +470,10 @@ const CFG_DEFS=[
   {cat:'precios',ico:'💱',k:'tc',lbl:'Tipo de cambio ($/USD)',sub:'Actualizalo',def:1150},
   {cat:'personal',ico:'👷',k:'jornal',lbl:'Jornal ($/día)',sub:'Por persona',def:60000},
   {cat:'personal',ico:'🏨',k:'hotel',lbl:'Hotel ($/noche)',sub:'Por persona',def:60000},
-  {cat:'personal',ico:'🍽️',k:'ac',lbl:'Almuerzo + cena ($/día)',sub:'Por persona',def:40000},
-  {cat:'personal',ico:'☕',k:'desay',lbl:'Desayuno ($/día)',sub:'Por persona',def:30000},
+  {cat:'personal',ico:'☕',k:'desay',lbl:'Desayuno ($/persona/día)',sub:'',def:9000},
+  {cat:'personal',ico:'🥐',k:'merienda',lbl:'Merienda ($/persona/día)',sub:'',def:9000},
+  {cat:'personal',ico:'🍽️',k:'almuerzo',lbl:'Almuerzo ($/persona/día)',sub:'',def:20000},
+  {cat:'personal',ico:'🌙',k:'cena',lbl:'Cena ($/persona/día)',sub:'',def:20000},
   {cat:'personal',ico:'📧',k:'email_dana',lbl:'Email Dana/Admin',sub:'Para copias internas',def:'',tp:'email'},
   {cat:'personal',ico:'📧',k:'email_jo',lbl:'Email Josefina',sub:'Copia de cada servicio',tp:'email',def:'tecnica@insuter.com.ar'},
   {cat:'personal',ico:'💬',k:'wa_alcides',tp:'text',lbl:'WA Alcides',sub:'Sin + ni espacios',def:'5493521442534'},
@@ -506,15 +509,29 @@ function n(id){return document.getElementById(id);}
 function fNum(x){return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
 function fDate(d){if(!d)return'';var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
 function dias(bb,tipo){return bb?Math.ceil(bb/(tipo==='sellado'?60:40)):0;}
-function viat(km,d,kmd){
-  // Viáticos = desayunos + almuerzos + peajes — SIEMPRE 2 personas
+function viat(km,d,kmd,noches){
+  // Viáticos = desayunos + meriendas + almuerzos + cenas — SIEMPRE 2 personas
   var personas=2;
-  var tc=parseFloat(cfg.tc)||1150;
-  var desay=d*personas*(parseFloat(cfg.desay)||30000);
-  var alm=d*personas*(parseFloat(cfg.ac)||40000);
-  var peajeUSD=parseFloat(cfg.peaje)||0;
-  var peajes=peajeUSD*2*tc; // ida y vuelta
-  return Math.round(desay+alm+peajes);
+  var nochesHotel=noches!==undefined?noches:Math.max(d-1,0);
+  var desay=d*personas*(parseFloat(cfg.desay)||9000);
+  var mer=d*personas*(parseFloat(cfg.merienda)||9000);
+  var alm=d*personas*(parseFloat(cfg.almuerzo)||20000);
+  var cena=nochesHotel*personas*(parseFloat(cfg.cena)||20000);
+  return Math.round(desay+mer+alm+cena);
+}
+function viatDetalle(d,noches){
+  var personas=2;
+  var nochesHotel=noches!==undefined?noches:Math.max(d-1,0);
+  var pD=parseFloat(cfg.desay)||9000;
+  var pM=parseFloat(cfg.merienda)||9000;
+  var pA=parseFloat(cfg.almuerzo)||20000;
+  var pC=parseFloat(cfg.cena)||20000;
+  return {
+    desay:d*personas*pD, mer:d*personas*pM,
+    alm:d*personas*pA,  cena:nochesHotel*personas*pC,
+    noches:nochesHotel,
+    total:Math.round(d*personas*pD+d*personas*pM+d*personas*pA+nochesHotel*personas*pC)
+  };
 }
 function toast(msg){var t=n('toast');t.textContent=msg;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2600);}
 function openModal(id){n(id).classList.add('open');}
@@ -611,6 +628,8 @@ n('btn-gen-msg').addEventListener('click',function(){
   var recLbl=recObj?recObj.n:'(sin asignar)';
   // Hotel extra manual
   var hotelExtra=parseInt(n('f-hotel').value)||0;
+  var diasExtra=parseInt(n('f-dias-extra').value)||0;
+  var dViat=d+diasExtra; // días para calcular viáticos (puede incluir días extra de viaje/imprevistos)
   var hotelCosto=hotelExtra>0?(hotelExtra*2*(parseFloat(cfg.hotel)||60000)):0;
   var hotelMsg=hotelExtra>0?'\n\n🏨 RESERVAR HOTEL: '+hotelExtra+' noche'+(hotelExtra>1?'s':'')+' extra para los técnicos (coordinar con administración).':'';
   // Detectar servicio consecutivo al día siguiente
@@ -628,7 +647,9 @@ n('btn-gen-msg').addEventListener('click',function(){
       hotelAlert='\n\n🏨 RESERVAR HOTEL: noche del '+nocheStr+' — al día siguiente hay servicio en '+svcConsec.map(function(s){return s.cliente;}).join(', ')+'.';
     }
   }
-      var msgD='✅ SERVICIO CONFIRMADO\nCliente: '+cl2+'\nProducto: '+prodLine+' — '+tipoLbl+'\nBig Bags totales: '+bbTotal+' ('+tonsTotal+' Tn)\nReceta N°: '+(rec||'—')+(rec?' ('+recLbl+')':'')+' | Duración: '+d+' día/s'+(fecha?' | Fecha: '+fDate(fecha):'')+' \nTécnicos: Alcides Fabbio y Gabriel Rodriguez\nViáticos aprox: $'+fNum(v)+'\n→ Pedirle a Stella que transfiera ese monto.'+hotelMsg+hotelAlert;
+        var nochesTot=Math.max(dViat-1,0)+hotelExtra; var v=viat(km,dViat,kmd,nochesTot); var vd=viatDetalle(dViat,nochesTot);
+  var vLines='  · Desayunos ('+d+' días × 2): $'+fNum(vd.desay)+'\n  · Meriendas ('+d+' días × 2): $'+fNum(vd.mer)+'\n  · Almuerzos ('+d+' días × 2): $'+fNum(vd.alm)+(vd.cena>0?'\n  · Cenas ('+vd.noches+' noche/s × 2): $'+fNum(vd.cena):'')+'\n  ──────────────\n  TOTAL: $'+fNum(vd.total);
+  var msgD='✅ SERVICIO CONFIRMADO\nCliente: '+cl2+'\nProducto: '+prodLine+' — '+tipoLbl+'\nBig Bags totales: '+bbTotal+' ('+tonsTotal+' Tn)\nReceta N°: '+(rec||'—')+(rec?' ('+recLbl+')':'')+' | Duración: '+d+' día/s'+(fecha?' | Fecha: '+fDate(fecha):'')+' \nTécnicos: Alcides Fabbio y Gabriel Rodriguez\n\n💰 Viáticos a transferir a Gabriel:\n'+vLines+'\n→ Pedirle a Stella que transfiera ese monto.'+(diasExtra>0?'\n📅 Incluye '+diasExtra+' día/s extra de viáticos.':'')+hotelMsg+hotelAlert;
   n('txt-dana').textContent=msgD;
   n('msg-dana').style.display='block';
   var litN2=bbTotal*(recObj?parseFloat(recObj.n2)||800:800);

@@ -295,6 +295,7 @@ var cl=CL_DEF.map(function(i){return Object.assign({},i);});
 var apiUrl=lsGet('bba_url','');
 var filtro='Todos';
 var tecnicos=['Alcides Fabbio','Gabriel Rodriguez'];
+var liqExtra={}; // días extra por técnico en liquidación
 var servicios=JSON.parse(lsGet('bba_s','[]'));var visibles=[];
 var gastos=JSON.parse(lsGet('bba_g','{}'));
 var sbGastos=[];
@@ -590,6 +591,7 @@ function renderLiq(){
   if(!svcMes.length){n('list-liq').innerHTML='<div class="empty"><p>No hay servicios en '+MESES[mes]+'.</p></div>';return;}
   var html='';
   tecnicos.forEach(function(tec){
+    var extraD=liqExtra[tec]||0;
     var totalJ=0,totalG=0,totalD=0;
     var rows='';
     svcMes.forEach(function(s){
@@ -606,11 +608,20 @@ function renderLiq(){
       rows+='<div class="svc-row-val"><div class="svc-row-total">$'+fNum(jT+gT)+'</div>';
       rows+='<div class="svc-row-break">Jornal: $'+fNum(jT)+(gT>0?' | Gs: $'+fNum(gT):'')+'</div></div></div>';
     });
+    // Sumar días extra manuales
+    var jornal=parseFloat(cfg.jornal)||60000;
+    totalD+=extraD;
+    totalJ+=extraD*jornal;
     var total=totalJ+totalG;
+    var tecKey=tec.replace(/ /g,'_');
     html+='<div class="tec-card">';
     html+='<div class="tec-hdr"><div class="tec-name">'+tec+'</div>';
-    html+='<div class="tec-sub">'+svcMes.length+' servicio/s &middot; '+totalD+' dias trabajados</div></div>';
+    html+='<div class="tec-sub">'+svcMes.length+' servicio/s &middot; '+totalD+' dias trabajados'+(extraD>0?' (+'+extraD+' extra)':'')+' </div></div>';
     html+='<div class="tec-body">'+rows;
+    html+='<div style="display:flex;gap:8px;margin:8px 0">';
+    html+='<button onclick="addDiaExtra(\''+tecKey+'\',\''+tec+'\')" style="flex:1;padding:10px;background:#E65100;color:white;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">➕ Sumar 1 día</button>';
+    html+=(extraD>0?'<button onclick="addDiaExtra(\''+tecKey+'\',\''+tec+'\',-1)" style="padding:10px 14px;background:#888;color:white;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer">−</button>':'');
+    html+='</div>';
     html+='<div class="liq-summary">';
     html+='<div class="liq-s-item"><div class="liq-s-val">$'+fNum(totalJ)+'</div><div class="liq-s-lbl">Jornal total</div></div>';
     html+='<div class="liq-s-item"><div class="liq-s-val">$'+fNum(totalG)+'</div><div class="liq-s-lbl">Gastos a reembolsar</div></div>';
@@ -620,6 +631,12 @@ function renderLiq(){
     html+='</div></div>';
   });
   n('list-liq').innerHTML=html;
+}
+function addDiaExtra(tecKey,tecNombre,delta){
+  var tec=tecNombre||tecKey.replace(/_/g,' ');
+  liqExtra[tec]=(liqExtra[tec]||0)+(delta||1);
+  if(liqExtra[tec]<0)liqExtra[tec]=0;
+  renderLiq();
 }
 function renderCL(){
   var mine=cl.filter(function(i){return i.cat==='Admin';});
@@ -679,13 +696,15 @@ n('btn-save-cfg').addEventListener('click',function(){
 });
 function initMesSel(){
   var now=new Date(),curM=now.getMonth(),curY=now.getFullYear(),html='';
-  for(var y=curY;y>=curY-1;y--){
-    for(var m=11;m>=0;m--){
-      if(y===curY&&m>curM)continue;
+  // Mostrar desde mes actual hasta dic del año siguiente
+  var years=[curY,curY+1];
+  years.forEach(function(y){
+    var mStart=(y===curY?curM:0);
+    for(var m=mStart;m<=11;m++){
       var sel=(m===curM&&y===curY)?' selected':'';
       html+='<option value="'+m+'-'+y+'"'+sel+'>'+MESES[m]+' '+y+'</option>';
     }
-  }
+  });
   n('mes-sel').innerHTML=html;
   n('mes-sel').addEventListener('change',renderLiq);
 }
