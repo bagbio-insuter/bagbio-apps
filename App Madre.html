@@ -742,6 +742,11 @@ function renderAgenda(){
     html+='<div class="svc-det">🗓 '+fDate(s.fecha)+' · 🌿 '+tn+' Tn</div>';
     var cliLoc=CLIENTES.find(function(c){return c.n===s.cliente;})||{};
     var mapsQ=encodeURIComponent((cliLoc.loc&&cliLoc.loc!=='—'?cliLoc.loc+', Argentina':s.cliente+', Argentina'));
+    var estOpts=['Pendiente','Confirmado','En curso','Completado'];
+    var estSel=estOpts.map(function(e){return '<option'+(e===s.estado?' selected':'')+'>'+e+'</option>';}).join('');
+    html+='<div style="margin:6px 0 4px">';
+    html+='<select data-est-id="'+s.id+'" style="width:100%;padding:7px 10px;border:2px solid #e0e0e0;border-radius:9px;font-size:13px;font-weight:600;color:#333;background:white;cursor:pointer">'+estSel+'</select>';
+    html+='</div>';
     html+='<div class="svc-actions">';
     html+='<button class="svc-btn-wa" data-svc-wa="'+s.id+'">💬 WA</button>';
     html+='<button class="svc-btn-mail" data-svc-mail="'+s.id+'">📧 Mail</button>';
@@ -775,6 +780,18 @@ function renderAgenda(){
       sbPatch('servicios','id',id,{estado:'Eliminado'});
       renderAgenda();
       toast('Servicio eliminado');
+    });
+  });
+  el.querySelectorAll('[data-est-id]').forEach(function(sel){
+    sel.addEventListener('change',function(){
+      var id=sel.dataset.estId,nuevoEst=sel.value;
+      var s=servicios.find(function(sv){return sv.id===id;});
+      if(!s)return;
+      s.estado=nuevoEst;
+      lsSet('bb_s',JSON.stringify(servicios));
+      postAPI('updateServicioEstado',{id:id,estado:nuevoEst});
+      renderAgenda();
+      toast('Estado: '+nuevoEst);
     });
   });
 }
