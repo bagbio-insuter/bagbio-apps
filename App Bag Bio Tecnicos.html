@@ -327,12 +327,14 @@ document.querySelectorAll('.tab').forEach(function(tb){
 n('syncBtn').addEventListener('click',function(){syncData();});
 function syncData(){
   n('syncDot').className='dot sync';n('syncLbl').textContent='...';
+  // Traer servicios activos (Confirmado + En curso), URL encoded
   Promise.all([
-    sbGet('servicios','select=*&estado=in.(Confirmado,En curso)&order=fecha.asc'),
+    sbGet('servicios','select=*&estado=in.(Confirmado,En%20curso)&order=fecha.asc'),
     sbGet('clientes','select=*&order=nombre.asc'),
-    sbGet('checklist','select=*&order=id.asc')
+    sbGet('checklist','select=*&order=id.asc'),
+    sbGet('gastos','select=*&order=id.desc')
   ]).then(function(res){
-    var svcs=res[0],clis=res[1],chkR=res[2];
+    var svcs=res[0],clis=res[1],chkR=res[2],gastosR=res[3];
     if(Array.isArray(chkR)&&chkR.length){
       cl_tec=chkR.map(function(i){return{id:i.id,cat:i.categoria,item:i.item,done:i.completado===true||i.completado==='true'};});
       lsSet('bbt_cl',JSON.stringify(cl_tec));
@@ -340,7 +342,8 @@ function syncData(){
       var stored=lsGet('bbt_cl','[]');
       cl_tec=JSON.parse(stored);
     }
-    if(Array.isArray(svcs)&&svcs.length){
+    if(Array.isArray(svcs)){
+      // Filtrar client-side también por si acaso
       servicios=svcs.filter(function(s){return s.estado==='Confirmado'||s.estado==='En curso';});
       lsSet('bbt_s',JSON.stringify(servicios));
     }
@@ -352,10 +355,25 @@ function syncData(){
       }).filter(function(c){return c.n;});
       lsSet('bbt_cli',JSON.stringify(CLIENTES));
     }
+    // Cargar gastos desde Supabase y mergear con locales
+    if(Array.isArray(gastosR)&&gastosR.length){
+      var sbIds=gastosR.map(function(g){return String(g.id);});
+      // Mantener gastos locales que todavía no están en Supabase
+      var soloLocales=gastos.filter(function(g){return !g.sb_synced&&sbIds.indexOf(String(g.id))<0;});
+      // Mapear gastos de Supabase al formato local
+      var desdeSB=gastosR.map(function(g){return{
+        id:String(g.id),svcId:String(g.servicio_id),tipo:g.tipo||'Otros',
+        monto:parseFloat(g.monto)||0,prov:g.proveedor||'',comp:g.nro_comprobante||'',
+        tcomp:g.tipo_comprobante||'',obs:g.obs||'',foto:g.foto||'',sb_synced:true
+      };});
+      gastos=desdeSB.concat(soloLocales);
+      lsSet('bbt_gas',JSON.stringify(gastos));
+    }
     renderServicios();
+    if(window._currentTab==='gastos')renderGastos();
     n('syncDot').className='dot';n('syncLbl').textContent='OK';
     setTimeout(function(){n('syncLbl').textContent='Sincronizar';},2000);
-    // Reenviar gastos locales no sincronizados a Supabase
+    // Subir gastos locales pendientes
     var pendientes=gastos.filter(function(g){return !g.sb_synced;});
     if(pendientes.length>0){
       var promises=pendientes.map(function(g){
