@@ -696,14 +696,15 @@ n('btn-save-cfg').addEventListener('click',function(){
 });
 function initMesSel(){
   var now=new Date(),curM=now.getMonth(),curY=now.getFullYear(),html='';
-  // Mostrar desde mes actual hasta dic del año siguiente
-  var years=[curY,curY+1];
-  years.forEach(function(y){
-    var mStart=(y===curY?curM:0);
-    for(var m=mStart;m<=11;m++){
-      var sel=(m===curM&&y===curY)?' selected':'';
-      html+='<option value="'+m+'-'+y+'"'+sel+'>'+MESES[m]+' '+y+'</option>';
-    }
+  // Mostrar 6 meses atrás + mes actual + hasta dic del año siguiente
+  var opciones=[];
+  for(var i=-6;i<=18;i++){
+    var d=new Date(curY,curM+i,1);
+    opciones.push({m:d.getMonth(),y:d.getFullYear()});
+  }
+  opciones.forEach(function(o){
+    var sel=(o.m===curM&&o.y===curY)?' selected':'';
+    html+='<option value="'+o.m+'-'+o.y+'"'+sel+'>'+MESES[o.m]+' '+o.y+'</option>';
   });
   n('mes-sel').innerHTML=html;
   n('mes-sel').addEventListener('change',renderLiq);
