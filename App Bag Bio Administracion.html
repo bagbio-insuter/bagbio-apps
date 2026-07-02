@@ -266,6 +266,7 @@ var CFG_DEFS=[
   {cat:'fuel',ico:'⛽',k:'gasoil_precio',lbl:'Precio gasoil ($/L)',sub:'',def:1600},
   {cat:'fuel',ico:'🚗',k:'km_litro',lbl:'Consumo (km/L)',sub:'Hilux diesel',def:7.5},
   {cat:'fuel',ico:'🛣️',k:'peaje',lbl:'Peajes USD (ida)',sub:'0 si no aplica',def:0},
+  {cat:'fuel',ico:'🚐',k:'km_extra_precio',lbl:'Combustible extra ($/km)',sub:'Movimientos locales técnicos',def:250},
   {cat:'precios',ico:'💚',k:'p_gt60',lbl:'Precio +60 BB (USD)',sub:'',def:25},
   {cat:'precios',ico:'💛',k:'p_40_60',lbl:'Precio 40-60 BB (USD)',sub:'',def:30},
   {cat:'precios',ico:'🔴',k:'p_lt40',lbl:'Precio -40 BB (USD)',sub:'',def:35},
@@ -535,18 +536,21 @@ function renderSvc(){
       var pCena=parseFloat(cfg.cena)||20000;
       var nochesHotel=Math.max(d-1,0); // noches que duermen afuera
       var cenasExtra=parseInt(prompt('🌙 ¿Cuántas cenas extra agregar? (noches adicionales, 0 si no hay)',nochesHotel))||0;
+      var kmExtra=parseInt(prompt('🚐 Combustible extra: km movimientos locales (hotel↔empresa, etc.) — 0 si no hay','0'))||0;
+      var pKmExtra=parseFloat(cfg.km_extra_precio)||250;
+      var combustExtra=kmExtra*pKmExtra;
       var desay2=d*2*pDesay;
       var merienda2=d*2*pMer;
       var alm2=d*2*pAlm;
       var cena2=cenasExtra*2*pCena;
-      var totalTransf=desay2+merienda2+alm2+cena2;
+      var totalTransf=desay2+merienda2+alm2+cena2+combustExtra;
       var hotelInfo=nochesHotel>0?'\n🏨 Hotel: '+nochesHotel+' noche/s — pagar directo desde admin.':'';
-      var msg='Hola Stella! 👋\n\n'+'✅ Servicio confirmado para *'+s.cliente+'*\n'+'📅 Fecha: '+fDate(s.fecha)+'\n'+'📦 Producto: '+(s.producto||'—')+' · '+e.bb+' BB ('+e.tn+' Tn)\n'+'📍 Destino: '+((CLIENTES.find(function(c){return c.n===s.cliente;})||{}).loc||km+' km')+' ('+km+' km)\n'+'👷 Técnicos: Alcides Fabbio y Gabriel Rodriguez\n'+'🗓 Duración estimada: '+d+' día/s\n\n'+'💰 *Transferir a GABRIEL:*\n'+'  · Desayunos ('+d+' días × 2): $'+fNum(desay2)+'\n'+'  · Meriendas ('+d+' días × 2): $'+fNum(merienda2)+'\n'+'  · Almuerzos ('+d+' días × 2): $'+fNum(alm2)+'\n'+(cena2>0?'  · Cenas ('+cenasExtra+' noches × 2): $'+fNum(cena2)+'\n':'')+'  ─────────────────\n'+'  *TOTAL: $'+fNum(totalTransf)+'*\n'+hotelInfo+'\n\n⛽ Primer tanque cargado en Dean Funes (cubierto por admin).\n🛣️ Peajes Córdoba: telepeaje — sin transferencia.\n\nGracias!';
+      var msg='Hola Stella! 👋\n\n'+'✅ Servicio confirmado para *'+s.cliente+'*\n'+'📅 Fecha: '+fDate(s.fecha)+'\n'+'📦 Producto: '+(s.producto||'—')+' · '+e.bb+' BB ('+e.tn+' Tn)\n'+'📍 Destino: '+((CLIENTES.find(function(c){return c.n===s.cliente;})||{}).loc||km+' km')+' ('+km+' km)\n'+'👷 Técnicos: Alcides Fabbio y Gabriel Rodriguez\n'+'🗓 Duración estimada: '+d+' día/s\n\n'+'💰 *Transferir a GABRIEL:*\n'+'  · Desayunos ('+d+' días × 2): $'+fNum(desay2)+'\n'+'  · Meriendas ('+d+' días × 2): $'+fNum(merienda2)+'\n'+'  · Almuerzos ('+d+' días × 2): $'+fNum(alm2)+'\n'+(cena2>0?'  · Cenas ('+cenasExtra+' noches × 2): $'+fNum(cena2)+'\n':'')+(combustExtra>0?'  · Combustible extra ('+kmExtra+' km × $'+fNum(pKmExtra)+'): $'+fNum(combustExtra)+'\n':'')+'  ─────────────────\n'+'  *TOTAL: $'+fNum(totalTransf)+'*\n'+hotelInfo+'\n\n⛽ Primer tanque cargado en Dean Funes (cubierto por admin).\n🛣️ Peajes Córdoba: telepeaje — sin transferencia.\n\nGracias!';
       var tel='5493516888529';
       window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
       // Generar comprobante de viáticos
       setTimeout(function(){
-        genComprobanteViaticos(s,{d:d,km:km,desay2:desay2,merienda2:merienda2,alm2:alm2,cena2:cena2,cenasExtra:cenasExtra,totalTransf:totalTransf,tc:tc});
+        genComprobanteViaticos(s,{d:d,km:km,desay2:desay2,merienda2:merienda2,alm2:alm2,cena2:cena2,cenasExtra:cenasExtra,combustExtra:combustExtra,kmExtra:kmExtra,totalTransf:totalTransf,tc:tc});
       },800);
     });
   });
