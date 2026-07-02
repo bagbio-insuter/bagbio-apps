@@ -378,7 +378,7 @@ function syncData(){
     var pendientes=gastos.filter(function(g){return !g.sb_synced;});
     if(pendientes.length>0){
       var promises=pendientes.map(function(g){
-        return sbInsert('gastos',{servicio_id:g.svcId||selectedSvcId,tipo:g.tipo,monto:g.monto,proveedor:g.prov||'',nro_comprobante:g.comp||'',tipo_comprobante:g.tcomp||'',obs:g.obs||'',foto:g.foto||''}).then(function(ok){if(ok)g.sb_synced=true;});
+        return sbInsert('gastos',{servicio_id:g.svcId||selectedSvcId,tipo:g.tipo,monto:g.monto,proveedor:g.prov||'',nro_comprobante:g.comp||'',tipo_comprobante:g.tcomp||'',obs:g.obs||'',foto:g.foto||'',foto_url:'',desayuno:0,merienda:0,almuerzo:0,otros:0}).then(function(ok){if(ok)g.sb_synced=true;});
       });
       Promise.all(promises).then(function(){lsSet('bbt_gas',JSON.stringify(gastos));});
     }
@@ -616,7 +616,7 @@ n('gas-btn-add').addEventListener('click',function(){
     var g={id:Date.now()+'',svcId:s.id,tipo:n('gas-tipo').value,monto:parseFloat(monto),prov:n('gas-prov').value,comp:n('gas-comp').value,tcomp:n('gas-tcomp').value,obs:n('gas-obs').value,foto:fotoData||''};
     gastos.push(g);
     lsSet('bbt_gas',JSON.stringify(gastos));
-    try{sbInsert('gastos',{servicio_id:s.id,tipo:g.tipo,monto:g.monto,proveedor:g.prov||'',nro_comprobante:g.comp||'',tipo_comprobante:g.tcomp||'',obs:g.obs||'',foto:g.foto||''}).catch(function(){});}catch(e){}
+    sbInsert('gastos',{servicio_id:s.id,tipo:g.tipo,monto:g.monto,proveedor:g.prov||'',nro_comprobante:g.comp||'',tipo_comprobante:g.tcomp||'',obs:g.obs||'',foto:g.foto||'',foto_url:'',desayuno:0,merienda:0,almuerzo:0,otros:0}).then(function(ok){if(ok){g.sb_synced=true;lsSet('bbt_gas',JSON.stringify(gastos));}}).catch(function(e){console.log('gasto insert err',e);});
     n('gas-monto').value='';n('gas-prov').value='';n('gas-comp').value='';n('gas-tcomp').value='';n('gas-obs').value='';n('gas-foto').value='';
     renderGastos();
     toast('Gasto registrado ✓');
