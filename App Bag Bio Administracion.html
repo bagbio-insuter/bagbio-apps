@@ -375,7 +375,12 @@ async function syncData(){
     lsSet('bba_s',JSON.stringify(servicios));lsSet('bba_c',JSON.stringify(cfg));lsSet('bba_cl',JSON.stringify(cl));
     renderStats();renderSvc();renderCL();
     n('syncDot').className='dot';n('syncLbl').textContent='OK';setTimeout(function(){n('syncLbl').textContent='Sincronizar';},3000);
-    toast('\u2705 Sync: '+servicios.length+' svcs \u00b7 '+sbGastos.length+' gastos \u00b7 isArr:'+Array.isArray(svcs));
+    toast('\u2705 Sync: '+servicios.length+' svcs \u00b7 '+sbGastos.length+' gastos');
+    // DEBUG: mostrar IDs para diagnóstico
+    var svcIds=servicios.slice(0,3).map(function(s){return s.id;});
+    var gasIds=sbGastos.slice(0,3).map(function(g){return g.servicio_id;});
+    console.log('SVC IDs:',svcIds,'GAS servicio_ids:',gasIds);
+    setTimeout(function(){toast('DEBUG — SVC: '+svcIds[0]+' | GAS svc_id: '+gasIds[0]);},2000);
   }catch(e){n('syncDot').className='dot off';n('syncLbl').textContent='Error';toast('Error: '+e.message);}
 }
 
