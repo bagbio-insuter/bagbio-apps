@@ -366,7 +366,7 @@ async function syncData(){
     var svcs=await sbGet('servicios','select=*&order=fecha.desc');
     var chkR=await sbGet('checklist');
     var clis=await sbGet('clientes','select=*&order=nombre.asc');
-    var gastosR=await sbGet('gastos','select=*&order=id.desc');
+    var gastosR=await sbGet('gastos','select=*&order=created_at.desc');
     if(Array.isArray(cfgR))cfgR.forEach(function(r){if(r.clave)cfg[r.clave]=r.valor;});
     if(Array.isArray(svcs))servicios=svcs;
     if(Array.isArray(chkR)&&chkR.length)cl=chkR.map(function(i){return Object.assign({},i,{done:i.completado===true||i.completado==='true',cat:i.categoria});});
