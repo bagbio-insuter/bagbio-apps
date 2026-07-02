@@ -330,10 +330,10 @@ function syncData(){
   n('syncDot').className='dot sync';n('syncLbl').textContent='...';
   // Traer servicios activos (Confirmado + En curso), URL encoded
   Promise.all([
-    sbGet('servicios','select=*&estado=in.(Pendiente,Confirmado,En%20curso)&order=fecha.asc'),
+    sbGet('servicios','select=*&estado=in.(Pendiente,Confirmado,En%20curso,Completado)&order=fecha.asc'),
     sbGet('clientes','select=*&order=nombre.asc'),
     sbGet('checklist','select=*&order=id.asc'),
-    sbGet('gastos','select=*&order=id.desc')
+    sbGet('gastos','select=id,servicio_id,tipo,monto,proveedor,nro_comprobante,tipo_comprobante,obs,created_at')
   ]).then(function(res){
     var svcs=res[0],clis=res[1],chkR=res[2],gastosR=res[3];
     if(Array.isArray(chkR)&&chkR.length){
@@ -345,7 +345,7 @@ function syncData(){
     }
     if(Array.isArray(svcs)){
       // Filtrar client-side también por si acaso
-      servicios=svcs.filter(function(s){return s.estado==='Pendiente'||s.estado==='Confirmado'||s.estado==='En curso';});
+      servicios=svcs.filter(function(s){return s.estado==='Pendiente'||s.estado==='Confirmado'||s.estado==='En curso'||s.estado==='Completado';});
       lsSet('bbt_s',JSON.stringify(servicios));
     }
     if(Array.isArray(clis)&&clis.length){
