@@ -306,7 +306,7 @@ function fNum(x){return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g
 function fDate(d){if(!d)return'';var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
 function dias(bb,tipo){return bb?Math.ceil(bb/(tipo==='sellado'?60:40)):0;}
 function toast(msg){var t=n('toast');t.textContent=msg;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2600);}
-function totalGastos(id){return sbGastos.filter(function(g){return g.servicio_id===id;}).reduce(function(a,g){return a+(parseFloat(g.monto)||0);},0);}
+function totalGastos(id){return sbGastos.filter(function(g){return String(g.servicio_id)===String(id);}).reduce(function(a,g){return a+(parseFloat(g.monto)||0);},0);}
 function calcEcon(s){
   var bb=s.bb||0,kg=s.kg||1200,tipo=s.tipo||'envasado';
   var d=dias(bb,tipo),km=KM[s.cliente]||0,tc=parseFloat(cfg.tc)||1150;
@@ -444,7 +444,7 @@ function renderSvc(){
     html+='<div class="di"><div class="di-l">Distancia</div><div class="di-v">'+e.km+' km</div></div>';
     html+='</div></div>';
     html+='<div class="det-sec"><div class="det-tit">💰 Gastos del servicio (cargados por técnicos)</div>';
-    var svcGastos=sbGastos.filter(function(g){return g.servicio_id===s.id;});
+    var svcGastos=sbGastos.filter(function(g){return String(g.servicio_id)===String(s.id);});
     if(svcGastos.length===0){
       html+='<p style="font-size:12px;color:#999;text-align:center;padding:10px 0">Sin gastos registrados aún.<br>Los técnicos los cargan desde su app.</p>';
     }else{
@@ -452,10 +452,12 @@ function renderSvc(){
       svcGastos.forEach(function(g){
         var fecha=g.created_at?g.created_at.substring(0,10):'—';
         html+='<div style="display:flex;justify-content:space-between;align-items:center;background:#f8f9ff;border-radius:8px;padding:8px 10px;border-left:3px solid var(--azm)">';
-        html+='<div><div style="font-size:12px;font-weight:700;color:var(--text)">'+g.tipo+'</div>';
-        html+='<div style="font-size:10px;color:#999">'+fecha+(g.tipo_comprobante?' · '+g.tipo_comprobante:'')+(g.nro_comprobante?' · N°'+g.nro_comprobante:'')+'</div></div>';
-        html+='<div style="font-size:14px;font-weight:900;color:var(--azm)">$'+fNum(g.monto||0)+'</div>';
+        html+='<div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--text)">'+g.tipo+'</div>';
+        html+='<div style="font-size:10px;color:#999">'+fecha+(g.tipo_comprobante?' · '+g.tipo_comprobante:'')+(g.nro_comprobante?' · N°'+g.nro_comprobante:'')+(g.obs?' · '+g.obs:'')+'</div></div>';
+        html+='<div style="text-align:right"><div style="font-size:14px;font-weight:900;color:var(--azm)">$'+fNum(g.monto||0)+'</div>';
+        html+=(g.foto?'<a href="'+g.foto+'" target="_blank" style="font-size:10px;color:#1565C0;text-decoration:none">🖼 ver foto</a>':'')+'</div>';
         html+='</div>';
+        if(g.foto){html+='<div style="margin-top:6px"><a href="'+g.foto+'" target="_blank"><img src="'+g.foto+'" style="max-width:100%;max-height:120px;border-radius:8px;object-fit:cover"></a></div>';}
       });
       html+='</div>';
     }
@@ -1066,7 +1068,7 @@ function calcViaticos(s){
 function exportarGastosExcel(svcId){
   var s=servicios.find(function(x){return x.id===svcId;});
   if(!s)return;
-  var gastos_svc=sbGastos.filter(function(g){return g.servicio_id===svcId;});
+  var gastos_svc=sbGastos.filter(function(g){return String(g.servicio_id)===String(svcId);});
   var total=gastos_svc.reduce(function(a,g){return a+(parseFloat(g.monto)||0);},0);
   var d=s.bb?Math.ceil(s.bb/(s.tipo==='sellado'?60:40)):1;
   var viaticos=s.viaticos>0?parseFloat(s.viaticos):calcViaticos(s);
