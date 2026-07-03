@@ -177,8 +177,26 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
     <div id="list-agenda"></div>
   </div>
   <div class="screen" id="sc-clientes">
-    <p class="sh">Contactos</p>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <p class="sh" style="margin:0">Contactos</p>
+      <button id="btn-new-cli" style="background:#1B5E20;color:white;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">➕ Nuevo cliente</button>
+    </div>
     <div id="list-clientes"></div>
+  </div>
+  <div class="modal" id="modal-new-cli">
+    <div class="modal-box">
+      <div class="modal-hdr"><span>Nuevo Cliente</span><button class="modal-x" onclick="closeModal('modal-new-cli')">✕</button></div>
+      <div class="field"><label>Nombre / Razón social *</label><input type="text" id="nc-nombre" placeholder="Ej: OLEGA"></div>
+      <div class="field"><label>Contacto</label><input type="text" id="nc-contacto" placeholder="Nombre del referente"></div>
+      <div class="field"><label>Teléfono</label><input type="tel" id="nc-tel" placeholder="+54 9 ..."></div>
+      <div class="field"><label>Email</label><input type="email" id="nc-email" placeholder="correo@empresa.com"></div>
+      <div class="row2">
+        <div class="field"><label>Ciudad</label><input type="text" id="nc-ciudad" placeholder="Córdoba"></div>
+        <div class="field"><label>Provincia</label><input type="text" id="nc-prov" placeholder="Córdoba"></div>
+      </div>
+      <div class="field"><label>🚗 Distancia desde Dean Funes (km)</label><input type="number" id="nc-km" placeholder="0" min="0"></div>
+      <button class="btn btn-g" id="nc-save-btn">💾 Guardar cliente</button>
+    </div>
   </div>
   <div class="screen" id="sc-recetas">
     <p class="sh">Referencia para la máquina</p>
@@ -841,6 +859,43 @@ function renderClientes(){
   });
 }
 
+function populateClienteSel(){
+  var sel=n('f-cliente');
+  if(!sel)return;
+  var cur=sel.value;
+  sel.innerHTML='<option value="">— Seleccionar —</option>';
+  CLIENTES.slice().sort(function(a,b){return a.n.localeCompare(b.n);}).forEach(function(c){
+    var opt=document.createElement('option');
+    opt.value=c.n;opt.textContent=c.n;
+    sel.appendChild(opt);
+  });
+  if(cur)sel.value=cur;
+}
+
+n('btn-new-cli').addEventListener('click',function(){
+  n('nc-nombre').value='';n('nc-contacto').value='';n('nc-tel').value='';
+  n('nc-email').value='';n('nc-ciudad').value='';n('nc-prov').value='';n('nc-km').value='';
+  openModal('modal-new-cli');
+});
+
+n('nc-save-btn').addEventListener('click',async function(){
+  var nombre=(n('nc-nombre').value||'').trim().toUpperCase();
+  if(!nombre){toast('Ingresá el nombre del cliente');return;}
+  var ciudad=(n('nc-ciudad').value||'').trim();
+  var prov=(n('nc-prov').value||'').trim();
+  var loc=ciudad?(ciudad+(prov?', '+prov:'')):'—';
+  var cli={n:nombre,c:n('nc-contacto').value.trim()||'—',t:n('nc-tel').value.trim()||'—',e:n('nc-email').value.trim()||'',loc:loc,km:parseInt(n('nc-km').value)||0};
+  CLIENTES.push(cli);
+  CLIENTES.sort(function(a,b){return a.n.localeCompare(b.n);});
+  lsSet('bb_cli',JSON.stringify(CLIENTES));
+  renderClientes();
+  populateClienteSel();
+  closeModal('modal-new-cli');
+  toast('✅ Cliente guardado');
+  var ok=await sbUpsert('clientes',{nombre:cli.n,contacto:cli.c,telefono:cli.t,email:cli.e,ciudad:ciudad,provincia:prov,km:cli.km});
+  if(!ok)toast('⚠️ Error al guardar en Supabase');
+});
+
 function populateRecSelect(){
   var sel=n('f-rec');
   if(!sel)return;
@@ -1048,7 +1103,7 @@ function syncData(){
       lsSet('bb_cli',JSON.stringify(CLIENTES));
     }
     lsSet('bb_s',JSON.stringify(servicios));lsSet('bb_c',JSON.stringify(cfg));lsSet('bb_cl',JSON.stringify(cl));
-    renderAgenda();renderCL();renderCfg();renderClientes();
+    renderAgenda();renderCL();renderCfg();renderClientes();populateClienteSel();
     n('syncDot').className='dot';n('syncLbl').textContent='OK';setTimeout(function(){n('syncLbl').textContent='Sincronizar';},3000);
     toast('\u2705 Sincronizado');
   }).catch(function(){n('syncDot').className='dot off';n('syncLbl').textContent='Error';toast('Error de conexi\u00f3n');});
@@ -1119,7 +1174,7 @@ n('conf-btn-dana').addEventListener('click',function(){
   var body=encodeURIComponent('Aviso interno — nuevo servicio agendado:\n\n'+n('conf-body').value);
   location.href='mailto:'+dest+'?subject='+sub+'&body='+body.replace(/%0A/g,'%0D%0A');
 });
-try{renderAgenda();renderClientes();renderRecetas();populateRecSelect();renderCL();}catch(e){var b=document.getElementById('err-banner');if(b){b.style.display='block';b.textContent='Init error: '+e.message+' :: '+e.stack;}}
+try{renderAgenda();renderClientes();populateClienteSel();renderRecetas();populateRecSelect();renderCL();}catch(e){var b=document.getElementById('err-banner');if(b){b.style.display='block';b.textContent='Init error: '+e.message+' :: '+e.stack;}}
 
 var calAnio=new Date().getFullYear();
 var calMes=new Date().getMonth();
