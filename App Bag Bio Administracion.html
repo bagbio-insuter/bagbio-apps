@@ -605,21 +605,19 @@ function renderLiq(){
       var e=calcEcon(s);
       var jT=e.d*(parseFloat(cfg.jornal)||30000);
       // Gastos reales del técnico (mitad del total del servicio ya que son 2 técnicos)
-      var gTotal=totalGastos(s.id);
-      var gT=gTotal>0?gTotal/2:0;
-      totalJ+=jT;totalG+=gT;totalD+=e.d;
+      totalJ+=jT;totalD+=e.d;
       rows+='<div class="svc-row">';
       rows+='<div class="svc-row-ico">🏭</div>';
       rows+='<div class="svc-row-info"><div class="svc-row-name">'+s.cliente+'</div>';
       rows+='<div class="svc-row-det">'+fDate(s.fecha)+' &middot; '+s.producto+' &middot; '+e.d+' dia/s</div></div>';
-      rows+='<div class="svc-row-val"><div class="svc-row-total">$'+fNum(jT+gT)+'</div>';
-      rows+='<div class="svc-row-break">Jornal: $'+fNum(parseFloat(cfg.jornal)||30000)+(gT>0?' | Gs: $'+fNum(gT):'')+'</div></div></div>';
+      rows+='<div class="svc-row-val"><div class="svc-row-total">$'+fNum(jT)+'</div>';
+      rows+='<div class="svc-row-break">Jornal: $'+fNum(parseFloat(cfg.jornal)||30000)+'</div></div></div>';
     });
     // Sumar días extra manuales
     var jornal=parseFloat(cfg.jornal)||30000;
     totalD+=extraD;
     totalJ+=extraD*jornal;
-    var total=totalJ+totalG;
+    var total=totalJ;
     var tecKey=tec.replace(/ /g,'_');
     html+='<div class="tec-card">';
     html+='<div class="tec-hdr"><div class="tec-name">'+tec+'</div>';
@@ -631,7 +629,6 @@ function renderLiq(){
     html+='</div>';
     html+='<div class="liq-summary">';
     html+='<div class="liq-s-item"><div class="liq-s-val">$'+fNum(totalJ)+'</div><div class="liq-s-lbl">Jornal total</div></div>';
-    html+='<div class="liq-s-item"><div class="liq-s-val">$'+fNum(totalG)+'</div><div class="liq-s-lbl">Gastos del operario</div></div>';
     html+='</div>';
     html+='<div class="transferir"><div class="transf-lbl">Total a transferir</div><div class="transf-val">$'+fNum(total)+'</div></div>';
     html+='<button class="btn-recibo" data-tec="'+tec+'" data-mes="'+mes+'" data-anio="'+anio+'">🧾 Generar recibo</button>';
