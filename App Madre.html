@@ -183,21 +183,21 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
     </div>
     <div id="list-clientes"></div>
   </div>
-  <div class="modal" id="modal-new-cli">
-    <div class="modal-box">
-      <div class="modal-hdr"><span>Nuevo Cliente</span><button class="modal-x" onclick="closeModal('modal-new-cli')">✕</button></div>
-      <div class="field"><label>Nombre / Razón social *</label><input type="text" id="nc-nombre" placeholder="Ej: OLEGA"></div>
-      <div class="field"><label>Contacto</label><input type="text" id="nc-contacto" placeholder="Nombre del referente"></div>
-      <div class="field"><label>Teléfono</label><input type="tel" id="nc-tel" placeholder="+54 9 ..."></div>
-      <div class="field"><label>Email</label><input type="email" id="nc-email" placeholder="correo@empresa.com"></div>
-      <div class="row2">
-        <div class="field"><label>Ciudad</label><input type="text" id="nc-ciudad" placeholder="Córdoba"></div>
-        <div class="field"><label>Provincia</label><input type="text" id="nc-prov" placeholder="Córdoba"></div>
-      </div>
-      <div class="field"><label>🚗 Distancia desde Dean Funes (km)</label><input type="number" id="nc-km" placeholder="0" min="0"></div>
-      <button class="btn btn-g" id="nc-save-btn">💾 Guardar cliente</button>
+<div class="overlay" id="modal-new-cli">
+  <div class="modal">
+    <div class="m-title">👤 Nuevo Cliente <button class="m-close" data-close="modal-new-cli">×</button></div>
+    <div class="field"><label>Nombre / Razón social *</label><input type="text" id="nc-nombre" placeholder="Ej: OLEGA"></div>
+    <div class="field"><label>Contacto</label><input type="text" id="nc-contacto" placeholder="Nombre del referente"></div>
+    <div class="field"><label>Teléfono</label><input type="tel" id="nc-tel" placeholder="+54 9 ..."></div>
+    <div class="field"><label>Email</label><input type="email" id="nc-email" placeholder="correo@empresa.com"></div>
+    <div class="row2">
+      <div class="field"><label>Ciudad</label><input type="text" id="nc-ciudad" placeholder="Córdoba"></div>
+      <div class="field"><label>Provincia</label><input type="text" id="nc-prov" placeholder="Córdoba"></div>
     </div>
+    <div class="field"><label>🚗 Km desde Dean Funes</label><input type="number" id="nc-km" placeholder="0" min="0"></div>
+    <button class="btn btn-g" id="nc-save-btn">💾 Guardar cliente</button>
   </div>
+</div>
   <div class="screen" id="sc-recetas">
     <p class="sh">Referencia para la máquina</p>
     <div id="list-recetas"></div>
