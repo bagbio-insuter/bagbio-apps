@@ -613,7 +613,7 @@ function renderLiq(){
       rows+='<div class="svc-row-info"><div class="svc-row-name">'+s.cliente+'</div>';
       rows+='<div class="svc-row-det">'+fDate(s.fecha)+' &middot; '+s.producto+' &middot; '+e.d+' dia/s</div></div>';
       rows+='<div class="svc-row-val"><div class="svc-row-total">$'+fNum(jT+gT)+'</div>';
-      rows+='<div class="svc-row-break">Jornal: $'+fNum(jT)+(gT>0?' | Gs: $'+fNum(gT):'')+'</div></div></div>';
+      rows+='<div class="svc-row-break">Jornal: $'+fNum(parseFloat(cfg.jornal)||30000)+(gT>0?' | Gs: $'+fNum(gT):'')+'</div></div></div>';
     });
     // Sumar días extra manuales
     var jornal=parseFloat(cfg.jornal)||30000;
