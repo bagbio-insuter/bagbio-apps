@@ -229,6 +229,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
     <span style="font-size:13px;font-weight:700;color:#607D8B">Mes:</span>
     <select id="rend-mes-sel" style="border:1px solid #ddd;border-radius:8px;padding:6px 10px;font-size:13px"></select>
     <button id="rend-sync-btn" style="margin-left:auto;background:#1565C0;color:white;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer">🔄 Cargar</button>
+    <button id="rend-export-btn" style="display:none;background:#1B5E20;color:white;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">📊 Excel</button>
   </div>
   <div id="rend-total-bar" style="display:none;background:#E8F5E9;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-weight:700;font-size:14px;color:#1B5E20;text-align:center"></div>
   <div id="list-rendicion"></div>
@@ -370,12 +371,12 @@ async function syncData(){
     if(Array.isArray(cfgR))cfgR.forEach(function(r){if(r.clave)cfg[r.clave]=r.valor;});
     if(Array.isArray(svcs))servicios=svcs;
     if(Array.isArray(chkR)&&chkR.length)cl=chkR.map(function(i){return Object.assign({},i,{done:i.completado===true||i.completado==='true',cat:i.categoria});});
-    if(Array.isArray(gastosR)){sbGastos=gastosR;}else{console.log('gastosR no es array:',gastosR);toast('DEBUG gastos: '+JSON.stringify(gastosR).substring(0,80));}
+    if(Array.isArray(gastosR)){sbGastos=gastosR;}else{console.log('gastosR no es array:',gastosR);}
     if(Array.isArray(clis)&&clis.length){CLIENTES=mapClientes(clis);lsSet('bba_cli',JSON.stringify(CLIENTES));}
     lsSet('bba_s',JSON.stringify(servicios));lsSet('bba_c',JSON.stringify(cfg));lsSet('bba_cl',JSON.stringify(cl));
     renderStats();renderSvc();renderCL();
     n('syncDot').className='dot';n('syncLbl').textContent='OK';setTimeout(function(){n('syncLbl').textContent='Sincronizar';},3000);
-    toast('\u2705 Sync: '+servicios.length+' svcs \u00b7 '+sbGastos.length+' gastos | isArr:'+Array.isArray(gastosR));
+    toast('\u2705 Sincronizado: '+servicios.length+' servicios \u00b7 '+sbGastos.length+' gastos');
   }catch(e){n('syncDot').className='dot off';n('syncLbl').textContent='Error';toast('Error: '+e.message);}
 }
 
@@ -890,6 +891,8 @@ function emailServicio(id){
     opt.textContent=MESES_R[d.getMonth()]+' '+d.getFullYear();
     selR.appendChild(opt);
   }
+  var lastRows=[];
+  function fShort(iso){if(!iso)return'—';var dt=new Date(iso);return dt.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});}
   n('rend-sync-btn').addEventListener('click',async function(){
     var parts=selR.value.split('-');
     var mes=parseInt(parts[0]),anio=parseInt(parts[1]);
@@ -901,32 +904,113 @@ function emailServicio(id){
       if(!Array.isArray(rows)||rows.length===0){
         n('list-rendicion').innerHTML='<div style="text-align:center;color:#aaa;padding:30px;font-style:italic">Sin gastos registrados para este mes.<br><small>Los gastos los cargan los técnicos desde la app de Operarios.</small></div>';
         n('rend-total-bar').style.display='none';
+        n('rend-export-btn').style.display='none';
+        lastRows=[];
       }else{
+        lastRows=rows;
         var bySvc={};
         rows.forEach(function(g){var sid=g.servicio_id||'sin-servicio';if(!bySvc[sid])bySvc[sid]=[];bySvc[sid].push(g);});
         var html='';var grandTotal=0;
         Object.keys(bySvc).forEach(function(sid){
           var gsvc=bySvc[sid];
-          var svcObj=servicios.find(function(s){return s.id===sid;})||{cliente:sid,producto:'—',fecha:''};
+          var svcObj=servicios.find(function(s){return s.id===sid;})||{cliente:sid,producto:'—',fecha:'',bb:0};
           var svcTotal=gsvc.reduce(function(a,g){return a+(parseFloat(g.monto)||0);},0);
           grandTotal+=svcTotal;
-          html+='<div style="background:white;border-radius:12px;padding:13px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);border-left:4px solid #1565C0">';
-          html+='<div style="font-size:14px;font-weight:700;color:#1565C0;margin-bottom:2px">'+svcObj.cliente+'</div>';
-          if(svcObj.fecha)html+='<div style="font-size:11px;color:#888;margin-bottom:8px">'+svcObj.producto+' · '+fDate(svcObj.fecha)+'</div>';
-          gsvc.forEach(function(g){
-            html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid #f5f5f5">';
-            html+='<div><span style="font-size:12px;font-weight:600">'+g.tipo+'</span>';
-            if(g.nro_comprobante)html+='<br><span style="font-size:11px;color:#888">Comp: '+g.nro_comprobante+'</span>';
-            if(g.obs)html+='<br><span style="font-size:11px;color:#aaa">'+g.obs+'</span>';
-            html+='</div><span style="font-size:14px;font-weight:700;color:#E65100">$'+fNum(parseFloat(g.monto)||0)+'</span></div>';
+          html+='<div style="background:white;border-radius:12px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.1);overflow:hidden">';
+          html+='<div style="background:#1565C0;padding:10px 14px;color:white">';
+          html+='<div style="font-size:14px;font-weight:700">'+svcObj.cliente+'</div>';
+          html+='<div style="font-size:11px;opacity:.85;margin-top:2px">'+svcObj.producto+(svcObj.bb?' · '+svcObj.bb+' BigBags':'')+(svcObj.fecha?' · '+fDate(svcObj.fecha):'')+'</div>';
+          html+='</div>';
+          html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+          html+='<thead><tr style="background:#E3F2FD">';
+          ['Fecha','Tipo de gasto','Comprobante','N° Comp.','Proveedor','Monto'].forEach(function(h,i){
+            html+='<th style="text-align:'+(i===5?'right':'left')+';padding:7px 9px;font-weight:700;color:#1565C0;white-space:nowrap">'+h+'</th>';
           });
-          html+='<div style="text-align:right;margin-top:8px;font-size:13px;font-weight:700;color:#1B5E20">Subtotal: $'+fNum(svcTotal)+'</div></div>';
+          html+='</tr></thead><tbody>';
+          gsvc.forEach(function(g,i){
+            var bg=i%2===0?'#fff':'#F8FBFF';
+            html+='<tr style="border-bottom:1px solid #EEF2F9;background:'+bg+'">';
+            html+='<td style="padding:7px 9px;color:#777;white-space:nowrap">'+fShort(g.created_at)+'</td>';
+            html+='<td style="padding:7px 9px;font-weight:600">'+g.tipo+'</td>';
+            html+='<td style="padding:7px 9px;color:#555">'+(g.tipo_comprobante||'—')+'</td>';
+            html+='<td style="padding:7px 9px;color:#555">'+(g.nro_comprobante||'—')+'</td>';
+            html+='<td style="padding:7px 9px;color:#555">'+(g.proveedor||'—')+'</td>';
+            html+='<td style="padding:7px 9px;text-align:right;font-weight:700;color:#E65100">$'+fNum(parseFloat(g.monto)||0)+'</td>';
+            html+='</tr>';
+          });
+          html+='</tbody></table></div>';
+          html+='<div style="padding:9px 14px;border-top:2px solid #E3F2FD">';
+          html+='<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:4px">';
+          html+='<span style="color:#607D8B">TOTAL GASTOS</span><span style="color:#E65100">$'+fNum(svcTotal)+'</span></div>';
+          var viatT=parseFloat(svcObj.viat_total)||0;
+          if(viatT>0){
+            var diff=svcTotal-viatT;
+            html+='<div style="display:flex;justify-content:space-between;font-size:12px;color:#666;margin-bottom:3px">';
+            html+='<span>Viáticos anticipados</span><span>$'+fNum(viatT)+'</span></div>';
+            html+='<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:5px 8px;border-radius:6px;background:'+(diff>0?'#FFF3E0':'#E8F5E9')+';color:'+(diff>0?'#E65100':'#1B5E20')+'">';
+            if(diff>0)html+='<span>EXCESO — reintegrar a Administración</span><span>$'+fNum(diff)+'</span>';
+            else if(diff<0)html+='<span>FALTANTE — Administración repone</span><span>$'+fNum(Math.abs(diff))+'</span>';
+            else html+='<span style="color:#1B5E20">✅ Gastos exactos</span><span>$0</span>';
+            html+='</div>';
+          }
+          html+='</div></div>';
         });
         n('list-rendicion').innerHTML=html;
         n('rend-total-bar').style.display='block';
-        n('rend-total-bar').textContent='💰 Total a reintegrar este mes: $'+fNum(grandTotal);
+        n('rend-total-bar').textContent='💰 Total del mes: $'+fNum(grandTotal)+' — Presioná 📊 Excel para exportar';
+        n('rend-export-btn').style.display='block';
       }
     }catch(e){n('list-rendicion').innerHTML='<p style="color:red">Error: '+e.message+'</p>';}
+  });
+  n('rend-export-btn').addEventListener('click',function(){
+    if(!lastRows.length)return;
+    var parts=selR.value.split('-');
+    var mes=parseInt(parts[0]),anio=parseInt(parts[1]);
+    var mesLabel=MESES_R[mes-1]+' '+anio;
+    var today=new Date().toLocaleDateString('es-AR');
+    var grandTotal=lastRows.reduce(function(a,g){return a+(parseFloat(g.monto)||0);},0);
+    var sorted=lastRows.slice().sort(function(a,b){return(a.created_at||'').localeCompare(b.created_at||'');});
+    var xls='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Rendición</x:Name></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>';
+    xls+='<table border="1" cellspacing="0" cellpadding="5" style="font-family:Arial;font-size:10pt;border-collapse:collapse">';
+    // Header
+    xls+='<tr><td colspan="4" style="font-weight:bold;background:#DDEEFF">Realizado por: Responsable de Calidad</td><td colspan="2" style="font-weight:bold;background:#DDEEFF">Realizado por: Resp. de Administración</td><td style="font-weight:bold;background:#DDEEFF">Fecha: '+today+'</td><td style="background:#DDEEFF">Página 1 de 1</td></tr>';
+    xls+='<tr><td colspan="2" style="font-weight:bold">EMPRESA</td><td colspan="3">Control Bio / Bag Bio</td><td style="font-weight:bold">PERÍODO</td><td colspan="2">'+mesLabel+'</td></tr>';
+    xls+='<tr><td colspan="8"> </td></tr>';
+    // Col headers
+    xls+='<tr style="background:#1565C0;color:white">';
+    ['Fecha','Comprobante','N° Comprobante','Proveedor','Tipo de gasto','Monto','Observaciones'].forEach(function(h){
+      xls+='<th style="background:#1565C0;color:white;font-weight:bold;text-align:center">'+h+'</th>';
+    });
+    xls+='<th style="background:#1565C0;color:white;font-weight:bold;text-align:center">Servicio</th></tr>';
+    // Data rows
+    sorted.forEach(function(g,i){
+      var svcObj=servicios.find(function(s){return s.id===g.servicio_id;})||{cliente:'—'};
+      var bg=i%2===0?'#FFFFFF':'#F0F6FF';
+      var dt=fShort(g.created_at);
+      var monto=parseFloat(g.monto)||0;
+      xls+='<tr style="background:'+bg+'">';
+      xls+='<td style="text-align:center">'+dt+'</td>';
+      xls+='<td>'+(g.tipo_comprobante||'')+'</td>';
+      xls+='<td style="text-align:center">'+(g.nro_comprobante||'')+'</td>';
+      xls+='<td>'+(g.proveedor||'')+'</td>';
+      xls+='<td style="font-weight:bold">'+(g.tipo||'')+'</td>';
+      xls+='<td style="text-align:right">$ '+monto.toLocaleString('es-AR',{minimumFractionDigits:2})+'</td>';
+      xls+='<td>'+(g.obs||'')+'</td>';
+      xls+='<td style="color:#666;font-size:9pt">'+svcObj.cliente+'</td></tr>';
+    });
+    // Total
+    xls+='<tr><td colspan="5" style="font-weight:bold;text-align:right;background:#E3F2FD">TOTAL</td>';
+    xls+='<td style="font-weight:bold;text-align:right;background:#E3F2FD">$ '+grandTotal.toLocaleString('es-AR',{minimumFractionDigits:2})+'</td><td colspan="2" style="background:#E3F2FD"></td></tr>';
+    xls+='<tr><td colspan="8"> </td></tr>';
+    // Footer
+    xls+='<tr><td colspan="3" style="font-weight:bold">Rendición de: ______________________</td><td colspan="3" style="font-weight:bold">Medio de pago:</td><td colspan="2">Transferencia</td></tr>';
+    xls+='<tr><td colspan="3" style="font-weight:bold">Realizado por: ______________________</td><td colspan="3" style="font-weight:bold">Autorizado por:</td><td colspan="2">______________________</td></tr>';
+    xls+='</table></body></html>';
+    var blob=new Blob([xls],{type:'application/vnd.ms-excel;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download='Rendicion-'+mesLabel.replace(' ','-')+'.xls';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   });
   // Load on tab switch
   document.querySelectorAll('.tab').forEach(function(tb){
