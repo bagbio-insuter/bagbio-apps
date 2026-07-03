@@ -358,6 +358,9 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
       </select></div></div>
     <div class="field"><label>🏨 Noches de hotel extra</label><input type="number" id="f-hotel" value="0" min="0" placeholder="0"></div>
     <div class="field"><label>📅 Días extra (viáticos)</label><input type="number" id="f-dias-extra" value="0" min="0" placeholder="0"></div>
+    <div class="field"><label>🚐 Km movimientos locales</label><input type="number" id="f-km-extra" value="0" min="0" placeholder="0"></div>
+    <div class="field"><label>📱 Cargas virtuales ($)</label><input type="number" id="f-cargas-virt" value="0" min="0" placeholder="0"></div>
+    <div class="field"><label>🔧 Extras / imprevistos ($)</label><input type="number" id="f-extras" value="0" min="0" placeholder="0"></div>
     <div class="field"><label>Observaciones</label><input type="text" id="f-obs" placeholder="Opcional..."></div>
     <div id="dias-badge" style="display:none" class="dias-b"></div>
     <div id="msg-dana" style="display:none" class="msg-box dana">
@@ -574,6 +577,7 @@ function fb(txt){var t=document.createElement('textarea');t.value=txt;document.b
 // FAB
 n('fab-btn').addEventListener('click',function(){
   n('f-fecha').valueAsDate=new Date();
+  n('f-hotel').value='0';n('f-dias-extra').value='0';n('f-km-extra').value='0';n('f-cargas-virt').value='0';n('f-extras').value='0';
   n('msg-dana').style.display='none';n('msg-cli').style.display='none';n('dias-badge').style.display='none';
   openModal('modal-svc');
 });
@@ -648,7 +652,13 @@ n('btn-gen-msg').addEventListener('click',function(){
     }
   }
         var nochesTot=Math.max(dViat-1,0)+hotelExtra; var v=viat(km,dViat,kmd,nochesTot); var vd=viatDetalle(dViat,nochesTot);
-  var vLines='  · Desayunos ('+d+' días × 2): $'+fNum(vd.desay)+'\n  · Meriendas ('+d+' días × 2): $'+fNum(vd.mer)+'\n  · Almuerzos ('+d+' días × 2): $'+fNum(vd.alm)+(vd.cena>0?'\n  · Cenas ('+vd.noches+' noche/s × 2): $'+fNum(vd.cena):'')+'\n  ──────────────\n  TOTAL: $'+fNum(vd.total);
+  var kmExtra=parseInt(n('f-km-extra').value)||0;
+  var pKmExtra=parseFloat(cfg.km_extra_precio)||250;
+  var combustExtra=kmExtra*pKmExtra;
+  var cargasVirt=parseFloat(n('f-cargas-virt').value)||0;
+  var extrasImp=parseFloat(n('f-extras').value)||0;
+  var totalFinal=vd.total+combustExtra+cargasVirt+extrasImp;
+  var vLines='  · Desayunos ('+dViat+' días × 2): $'+fNum(vd.desay)+'\n  · Meriendas ('+dViat+' días × 2): $'+fNum(vd.mer)+'\n  · Almuerzos ('+dViat+' días × 2): $'+fNum(vd.alm)+(vd.cena>0?'\n  · Cenas ('+vd.noches+' noche/s × 2): $'+fNum(vd.cena):'')+(combustExtra>0?'\n  · Combustible extra ('+kmExtra+' km): $'+fNum(combustExtra):'')+(cargasVirt>0?'\n  · Cargas virtuales: $'+fNum(cargasVirt):'')+(extrasImp>0?'\n  · Extras/imprevistos: $'+fNum(extrasImp):'')+'\n  ──────────────\n  TOTAL A TRANSFERIR: $'+fNum(totalFinal);
   var msgD='✅ SERVICIO CONFIRMADO\nCliente: '+cl2+'\nProducto: '+prodLine+' — '+tipoLbl+'\nBig Bags totales: '+bbTotal+' ('+tonsTotal+' Tn)\nReceta N°: '+(rec||'—')+(rec?' ('+recLbl+')':'')+' | Duración: '+d+' día/s'+(fecha?' | Fecha: '+fDate(fecha):'')+' \nTécnicos: Alcides Fabbio y Gabriel Rodriguez\n\n💰 Viáticos a transferir a Gabriel:\n'+vLines+'\n→ Pedirle a Stella que transfiera ese monto.'+(diasExtra>0?'\n📅 Incluye '+diasExtra+' día/s extra de viáticos.':'')+hotelMsg+hotelAlert;
   n('txt-dana').textContent=msgD;
   n('msg-dana').style.display='block';
@@ -676,7 +686,7 @@ n('btn-save-svc').addEventListener('click',function(){
   var pr2s=n('f-prod2').value,bb2s=parseInt(n('f-bb2').value)||0,kg2s=parseInt(n('f-kg2').value)||1200;
   var hasP2s=pr2s&&bb2s>0;
   var prodDisplay=hasP2s?pr+' + '+pr2s:pr;
-  var s={id:'SRV-'+Date.now(),fecha:n('f-fecha').value,cliente:cl2,producto:prodDisplay,tipo:n('f-tipo').value,bb:bb,kg:parseInt(n('f-kg').value)||1200,receta:parseInt(n('f-rec').value)||0,kmdest:parseInt(n('f-kmd').value)||0,estado:n('f-est').value,obs:n('f-obs').value,hotel:parseInt(n('f-hotel').value)||0,producto2:pr2s,bb2:bb2s,kg2:kg2s};
+  var s={id:'SRV-'+Date.now(),fecha:n('f-fecha').value,cliente:cl2,producto:prodDisplay,tipo:n('f-tipo').value,bb:bb,kg:parseInt(n('f-kg').value)||1200,receta:parseInt(n('f-rec').value)||0,kmdest:parseInt(n('f-kmd').value)||0,estado:n('f-est').value,obs:n('f-obs').value,hotel:parseInt(n('f-hotel').value)||0,producto2:pr2s,bb2:bb2s,kg2:kg2s,km_extra:parseInt(n('f-km-extra').value)||0,cargas_virt:parseFloat(n('f-cargas-virt').value)||0,extras:parseFloat(n('f-extras').value)||0};
   servicios.unshift(s);lsSet('bb_s',JSON.stringify(servicios));
   postAPI('saveServicio',s);
   renderAgenda();closeModal('modal-svc');
