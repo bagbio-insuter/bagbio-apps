@@ -420,9 +420,10 @@ function renderFiltros(){
 function renderSvc(){
   var el=n('list-svc');
   var hoy=new Date().toISOString().slice(0,10);
+  var toISO=function(f){if(!f)return '';if(/^\d{4}-/.test(f))return f;var p=f.split('/');return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:f;};
   var lista=filtro==='Todos'?visibles:visibles.filter(function(s){return s.estado===filtro;});
-  var activos=lista.filter(function(s){return s.fecha>=hoy||s.estado==='En curso';});
-  var pasados=lista.filter(function(s){return s.fecha<hoy&&s.estado!=='En curso';});
+  var activos=lista.filter(function(s){return toISO(s.fecha)>=hoy||s.estado==='En curso';});
+  var pasados=lista.filter(function(s){return toISO(s.fecha)<hoy&&s.estado!=='En curso';});
   if(!lista.length){el.innerHTML='<div class="empty"><p>No hay servicios.</p></div>';return;}
   var html='';
   if(!activos.length){html+='<div class="empty"><p>No hay servicios próximos.</p></div>';}

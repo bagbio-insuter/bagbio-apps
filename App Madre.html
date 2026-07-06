@@ -801,9 +801,10 @@ function buildSvcCard(s){
 function renderAgenda(){
   var el=n('list-agenda');
   var hoy=new Date().toISOString().slice(0,10);
+  var toISO=function(f){if(!f)return '';if(/^\d{4}-/.test(f))return f;var p=f.split('/');return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:f;};
   var todos=servicios.filter(function(s){return s.estado!=='Eliminado';});
-  var activos=todos.filter(function(s){return s.fecha>=hoy||s.estado==='En curso';});
-  var pasados=todos.filter(function(s){return s.fecha<hoy&&s.estado!=='En curso';});
+  var activos=todos.filter(function(s){return toISO(s.fecha)>=hoy||s.estado==='En curso';});
+  var pasados=todos.filter(function(s){return toISO(s.fecha)<hoy&&s.estado!=='En curso';});
   if(!todos.length){el.innerHTML='<div class="empty"><div class="ei">📅</div><p>No hay servicios.<br>Tocá ＋ para agregar uno.</p></div>';return;}
   var html='';
   if(!activos.length){html+='<div class="empty"><div class="ei">📅</div><p>No hay servicios próximos.</p></div>';}
