@@ -454,6 +454,28 @@ function renderInfo(){
     '<div class="info-row"><span class="info-lbl">Fecha</span><span class="info-val">'+fDate(s.fecha)+'</span></div>'+
     (s.obs?'<div class="info-row"><span class="info-lbl">Obs</span><span class="info-val" style="text-align:right;font-size:12px">'+s.obs+'</span></div>':'');
   n('info-detalle').innerHTML=detalleHtml;
+  // Sección sumar BB
+  var addBbHtml='<div style="margin-top:12px;background:#FFF8E1;border-radius:10px;padding:12px;border-left:3px solid #FFA000">'+
+    '<div style="font-size:13px;font-weight:700;color:#E65100;margin-bottom:8px">➕ Sumar Big Bags al servicio</div>'+
+    '<div style="font-size:12px;color:#666;margin-bottom:8px">Total actual: <b style="color:#333">'+s.bb+' BB</b></div>'+
+    '<div style="display:flex;gap:8px;align-items:center">'+
+    '<input type="number" id="add-bb-inp" min="1" placeholder="¿Cuántos BB más?" style="flex:1;padding:9px;border:2px solid #FFB300;border-radius:8px;font-size:14px;outline:none">'+
+    '<button id="add-bb-btn" style="background:#F57C00;color:white;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer">Sumar</button>'+
+    '</div></div>';
+  var addBbEl=document.createElement('div');
+  addBbEl.innerHTML=addBbHtml;
+  n('info-detalle').appendChild(addBbEl);
+  n('add-bb-btn').addEventListener('click',function(){
+    var extra=parseInt(n('add-bb-inp').value)||0;
+    if(extra<1){toast('Ingresá una cantidad válida');return;}
+    s.bb=(s.bb||0)+extra;
+    var idx=servicios.findIndex(function(x){return x.id===s.id;});
+    if(idx>=0)servicios[idx].bb=s.bb;
+    lsSet('bbt_s',JSON.stringify(servicios));
+    sbPatch('servicios','id',s.id,{bb:s.bb});
+    renderInfo();
+    toast('✅ +'+extra+' BB — Total: '+s.bb+' BB');
+  });
   renderPrep();
 }
 

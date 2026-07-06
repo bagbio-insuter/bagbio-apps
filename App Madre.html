@@ -735,6 +735,9 @@ n('btn-save-svc').addEventListener('click',function(){
   var tn=((s.bb||0)*(s.kg||1200)/1000).toFixed(1);
   var rec=RECETAS.find(function(r){return r.id===s.receta;})||{n:'—'};
   var tubos=Math.ceil(((s.bb||0)*(rec.n2||800))/6000);
+  var co2rec=rec.co2?parseFloat(rec.co2):0;
+  var tubosCO2=co2rec>0?Math.ceil(((s.bb||0)*co2rec)/25000):0;
+  var co2LineConf=tubosCO2>0?'\n  🟢 Tubos CO₂ estimados: '+tubosCO2:'';
   var msgBody='Estimado/a '+(cli3?cli3.c:s.cliente)+',\n\n'+
     'Le confirmamos el siguiente servicio de atmósfera modificada:\n\n'+
     '  📦 Producto: '+s.producto+'\n'+
@@ -742,7 +745,8 @@ n('btn-save-svc').addEventListener('click',function(){
     '  📊 Cantidad: '+s.bb+' Big Bags ('+tn+' Tn)\n'+
     '  ⏱ Duración estimada: '+d+' día/s\n'+
     '  🧪 Receta: '+rec.n+'\n'+
-    '  🔵 Tubos N₂ estimados: '+tubos+'\n'+
+    '  🔵 Tubos N₂ estimados: '+tubos+
+    co2LineConf+'\n'+
     '  📋 Estado: '+s.estado+
     (s.obs?'\n  📝 Obs: '+s.obs:'')+
     '\n\nBag Bio / Control Bio\nDean Funes, Córdoba';
@@ -777,33 +781,47 @@ function emailServicio(svcId){
   location.href='mailto:'+dest+'?subject='+sub+'&body='+body.replace(/%0A/g,'%0D%0A');
 }
 
+function buildSvcCard(s){
+  var d=dias(s.bb||0,s.tipo),tn=((s.bb||0)*(s.kg||1200)/1000).toFixed(1);
+  var bc=s.estado==='En curso'?'curso':'';
+  var bClass={Completado:'b-comp',Pendiente:'b-pend',Confirmado:'b-conf','En curso':'b-curs'}[s.estado]||'b-pend';
+  var cliLoc=CLIENTES.find(function(c){return c.n===s.cliente;})||{};
+  var mapsQ=encodeURIComponent((cliLoc.loc&&cliLoc.loc!=='—'?cliLoc.loc+', Argentina':s.cliente+', Argentina'));
+  var estOpts=['Pendiente','Confirmado','En curso','Completado'];
+  var estSel=estOpts.map(function(e){return '<option'+(e===s.estado?' selected':'')+'>'+e+'</option>';}).join('');
+  var h='<div class="svc '+bc+'">';
+  h+='<div class="svc-top"><span class="svc-name">'+s.cliente+'</span><span class="badge '+bClass+'">'+s.estado+'</span><button class="del-svc" data-svc-del="'+s.id+'" title="Eliminar">🗑</button></div>';
+  h+='<div class="svc-det">📦 '+s.producto+' · '+s.bb+' BB · '+d+' día/s</div>';
+  h+='<div class="svc-det">🗓 '+fDate(s.fecha)+' · 🌿 '+tn+' Tn</div>';
+  h+='<div style="margin:6px 0 4px"><select data-est-id="'+s.id+'" style="width:100%;padding:7px 10px;border:2px solid #e0e0e0;border-radius:9px;font-size:13px;font-weight:600;color:#333;background:white;cursor:pointer">'+estSel+'</select></div>';
+  h+='<div class="svc-actions"><button class="svc-btn-wa" data-svc-wa="'+s.id+'">💬 WA</button><button class="svc-btn-mail" data-svc-mail="'+s.id+'">📧 Mail</button><a class="svc-btn-maps" href="https://maps.google.com/?q='+mapsQ+'" target="_blank">📍 Maps</a></div>';
+  h+='</div>';
+  return h;
+}
 function renderAgenda(){
   var el=n('list-agenda');
-  if(!servicios.length){el.innerHTML='<div class="empty"><div class="ei">📅</div><p>No hay servicios.<br>Tocá ＋ para agregar uno.</p></div>';return;}
+  var hoy=new Date().toISOString().slice(0,10);
+  var todos=servicios.filter(function(s){return s.estado!=='Eliminado';});
+  var activos=todos.filter(function(s){return s.fecha>=hoy||s.estado==='En curso';});
+  var pasados=todos.filter(function(s){return s.fecha<hoy&&s.estado!=='En curso';});
+  if(!todos.length){el.innerHTML='<div class="empty"><div class="ei">📅</div><p>No hay servicios.<br>Tocá ＋ para agregar uno.</p></div>';return;}
   var html='';
-  servicios.filter(function(s){return s.estado!=='Eliminado';}).forEach(function(s){
-    var d=dias(s.bb||0,s.tipo),tn=((s.bb||0)*(s.kg||1200)/1000).toFixed(1);
-    var bc=s.estado==='En curso'?'curso':'';
-    var bClass={Completado:'b-comp',Pendiente:'b-pend',Confirmado:'b-conf','En curso':'b-curs'}[s.estado]||'b-pend';
-    html+='<div class="svc '+bc+'">';
-    html+='<div class="svc-top"><span class="svc-name">'+s.cliente+'</span><span class="badge '+bClass+'">'+s.estado+'</span><button class="del-svc" data-svc-del="'+s.id+'" title="Eliminar">🗑</button></div>';
-    html+='<div class="svc-det">📦 '+s.producto+' · '+s.bb+' BB · '+d+' día/s</div>';
-    html+='<div class="svc-det">🗓 '+fDate(s.fecha)+' · 🌿 '+tn+' Tn</div>';
-    var cliLoc=CLIENTES.find(function(c){return c.n===s.cliente;})||{};
-    var mapsQ=encodeURIComponent((cliLoc.loc&&cliLoc.loc!=='—'?cliLoc.loc+', Argentina':s.cliente+', Argentina'));
-    var estOpts=['Pendiente','Confirmado','En curso','Completado'];
-    var estSel=estOpts.map(function(e){return '<option'+(e===s.estado?' selected':'')+'>'+e+'</option>';}).join('');
-    html+='<div style="margin:6px 0 4px">';
-    html+='<select data-est-id="'+s.id+'" style="width:100%;padding:7px 10px;border:2px solid #e0e0e0;border-radius:9px;font-size:13px;font-weight:600;color:#333;background:white;cursor:pointer">'+estSel+'</select>';
+  if(!activos.length){html+='<div class="empty"><div class="ei">📅</div><p>No hay servicios próximos.</p></div>';}
+  else{activos.forEach(function(s){html+=buildSvcCard(s);});}
+  if(pasados.length){
+    html+='<button id="btn-historial" style="width:100%;margin:10px 0;padding:10px;background:#f5f5f5;border:2px dashed #bbb;border-radius:10px;font-size:13px;font-weight:600;color:#777;cursor:pointer">📋 Ver historial ('+pasados.length+' servicio/s)</button>';
+    html+='<div id="sec-historial" style="display:none">';
+    pasados.forEach(function(s){html+=buildSvcCard(s);});
     html+='</div>';
-    html+='<div class="svc-actions">';
-    html+='<button class="svc-btn-wa" data-svc-wa="'+s.id+'">💬 WA</button>';
-    html+='<button class="svc-btn-mail" data-svc-mail="'+s.id+'">📧 Mail</button>';
-    html+='<a class="svc-btn-maps" href="https://maps.google.com/?q='+mapsQ+'" target="_blank">📍 Maps</a>';
-    html+='</div>';
-    html+='</div>';
-  });
+  }
   el.innerHTML=html;
+  var btnH=n('btn-historial');
+  if(btnH){btnH.addEventListener('click',function(){
+    var sec=n('sec-historial');
+    var vis=sec.style.display!=='none';
+    sec.style.display=vis?'none':'block';
+    btnH.textContent=vis?'📋 Ver historial ('+pasados.length+' servicio/s)':'📋 Ocultar historial';
+  });}
   el.querySelectorAll('[data-svc-wa]').forEach(function(b){
     b.addEventListener('click',function(){
       var sv=servicios.find(function(x){return x.id===b.dataset.svcWa;});
@@ -811,9 +829,7 @@ function renderAgenda(){
       var tel=cli&&cli.t&&cli.t!=='—'?cli.t.replace(/\s|\+/g,''):'';
       if(!tel){alert('Sin teléfono para '+sv.cliente);return;}
       var tn2=((sv.bb||0)*(sv.kg||1200)/1000).toFixed(1);
-      var msg=encodeURIComponent('Confirmación servicio MAP — '+sv.cliente+'\n'+
-        '📦 '+sv.producto+' · '+sv.bb+' BB · '+tn2+' Tn\n'+
-        '🗓 '+fDate(sv.fecha)+'\n📋 Estado: '+sv.estado+'\n— Bag Bio / Control Bio');
+      var msg=encodeURIComponent('Confirmación servicio MAP — '+sv.cliente+'\n'+'📦 '+sv.producto+' · '+sv.bb+' BB · '+tn2+' Tn\n'+'🗓 '+fDate(sv.fecha)+'\n📋 Estado: '+sv.estado+'\n— Bag Bio / Control Bio');
       window.open('https://wa.me/'+tel+'?text='+msg,'_blank');
     });
   });
