@@ -674,10 +674,11 @@ n('btn-gen-msg').addEventListener('click',function(){
   var kmExtra=parseInt(n('f-km-extra').value)||0;
   var pKmExtra=parseFloat(cfg.km_extra_precio)||250;
   var combustExtra=kmExtra*pKmExtra;
+  var combustVuelta=km>0?Math.round(km/(parseFloat(cfg.km_litro)||7.5)*(parseFloat(cfg.gasoil_precio)||1600)):0;
   var cargasVirt=parseFloat(n('f-cargas-virt').value)||0;
   var extrasImp=parseFloat(n('f-extras').value)||0;
-  var totalFinal=vd.total+combustExtra+cargasVirt+extrasImp;
-  var vLines='  · Desayunos ('+dViat+' días × 2): $'+fNum(vd.desay)+'\n  · Meriendas ('+dViat+' días × 2): $'+fNum(vd.mer)+'\n  · Almuerzos ('+dViat+' días × 2): $'+fNum(vd.alm)+(vd.cena>0?'\n  · Cenas ('+vd.noches+' noche/s × 2): $'+fNum(vd.cena):'')+(combustExtra>0?'\n  · Combustible extra ('+kmExtra+' km): $'+fNum(combustExtra):'')+(cargasVirt>0?'\n  · Cargas virtuales: $'+fNum(cargasVirt):'')+(extrasImp>0?'\n  · Extras/imprevistos: $'+fNum(extrasImp):'')+'\n  ──────────────\n  TOTAL A TRANSFERIR: $'+fNum(totalFinal);
+  var totalFinal=vd.total+combustVuelta+combustExtra+cargasVirt+extrasImp;
+  var vLines='  · Desayunos ('+dViat+' días × 2): $'+fNum(vd.desay)+'\n  · Meriendas ('+dViat+' días × 2): $'+fNum(vd.mer)+'\n  · Almuerzos ('+dViat+' días × 2): $'+fNum(vd.alm)+(vd.cena>0?'\n  · Cenas ('+vd.noches+' noche/s × 2): $'+fNum(vd.cena):'')+(combustVuelta>0?'\n  · Combustible vuelta ('+km+' km): $'+fNum(combustVuelta):'')+(combustExtra>0?'\n  · Combustible extra ('+kmExtra+' km): $'+fNum(combustExtra):'')+(cargasVirt>0?'\n  · Cargas virtuales: $'+fNum(cargasVirt):'')+(extrasImp>0?'\n  · Extras/imprevistos: $'+fNum(extrasImp):'')+'\n  ──────────────\n  TOTAL A TRANSFERIR: $'+fNum(totalFinal);
   var msgD='✅ SERVICIO CONFIRMADO\nCliente: '+cl2+'\nProducto: '+prodLine+' — '+tipoLbl+'\nBig Bags totales: '+bbTotal+' ('+tonsTotal+' Tn)\nReceta N°: '+(rec||'—')+(rec?' ('+recLbl+')':'')+' | Duración: '+d+' día/s'+(fecha?' | Fecha: '+fDate(fecha):'')+' \nTécnicos: Alcides Fabbio y Gabriel Rodriguez\n\n💰 Viáticos a transferir a Gabriel:\n'+vLines+'\n→ Pedirle a Stella que transfiera ese monto.'+(diasExtra>0?'\n📅 Incluye '+diasExtra+' día/s extra de viáticos.':'')+hotelMsg+hotelAlert;
   n('txt-dana').textContent=msgD;
   n('msg-dana').style.display='block';
@@ -713,9 +714,11 @@ n('btn-save-svc').addEventListener('click',function(){
   var viatBase=viat(0,dViat,0,nochesTot);
   var kmExtraV=parseInt(n('f-km-extra').value)||0;
   var combustExtra=kmExtraV*(parseFloat(cfg.km_extra_precio)||250);
+  var cliKmV=(CLIENTES.find(function(c){return c.n===cl2;})||{}).km||KM[cl2]||0;
+  var combustVueltaV=cliKmV>0?Math.round(cliKmV/(parseFloat(cfg.km_litro)||7.5)*(parseFloat(cfg.gasoil_precio)||1600)):0;
   var cargasVirtV=parseFloat(n('f-cargas-virt').value)||0;
   var extrasV=parseFloat(n('f-extras').value)||0;
-  var viatTotal=Math.round(viatBase+combustExtra+cargasVirtV+extrasV);
+  var viatTotal=Math.round(viatBase+combustVueltaV+combustExtra+cargasVirtV+extrasV);
   var s={id:'SRV-'+Date.now(),fecha:n('f-fecha').value,cliente:cl2,producto:prodDisplay,tipo:tipo,bb:bb,kg:parseInt(n('f-kg').value)||1200,receta:parseInt(n('f-rec').value)||0,kmdest:parseInt(n('f-kmd').value)||0,estado:n('f-est').value,obs:n('f-obs').value,hotel:hotelExtra,producto2:pr2s,bb2:bb2s,kg2:kg2s,dias_extra:diasExtra,km_extra:kmExtraV,cargas_virt:cargasVirtV,extras:extrasV,viat_total:viatTotal};
   servicios.unshift(s);lsSet('bb_s',JSON.stringify(servicios));
   postAPI('saveServicio',s);
