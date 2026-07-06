@@ -592,7 +592,7 @@ function renderSvc(){
       window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
       // Generar comprobante de viáticos
       setTimeout(function(){
-        genComprobanteViaticos(s,{d:dTot,km:km,desay2:desay2,merienda2:merienda2,alm2:alm2,cena2:cena2,cenasExtra:nochesTot,combustExtra:combustExtra,kmExtra:kmExtraSvc,totalTransf:totalTransf,tc:tc,combustVuelta:combustVuelta});
+        genComprobanteViaticos(s,{d:dTot,km:km,desay2:desay2,merienda2:merienda2,alm2:alm2,cena2:cena2,cenasExtra:nochesTot,combustExtra:combustExtra,kmExtra:kmExtraSvc,cargasVirt:cargasVirtSvc,extras:extrasSvc,totalTransf:totalTransf,tc:tc,combustVuelta:combustVuelta});
       },800);
     });
   });
@@ -1181,8 +1181,13 @@ function genComprobanteViaticos(s, datos){
     +'</div>'
     +'<div class="blk"><div class="blk-tit">💸 Detalle de la transferencia</div>'
     +'<div class="row"><span class="row-lbl">Desayunos ('+d+' días × 2 personas)</span><span class="row-val">$'+fNum(desay2)+'</span></div>'
-    +'<div class="row"><span class="row-lbl">Almuerzos / cenas ('+d+' días × 2 personas)</span><span class="row-val">$'+fNum(alm2)+'</span></div>'
-    +(peajes2>0?'<div class="row"><span class="row-lbl">Peajes nacionales (ida + vuelta)</span><span class="row-val">$'+fNum(peajes2)+'</span></div>':'')
+    +'<div class="row"><span class="row-lbl">Meriendas ('+d+' días × 2 personas)</span><span class="row-val">$'+fNum(datos.merienda2||0)+'</span></div>'
+    +'<div class="row"><span class="row-lbl">Almuerzos ('+d+' días × 2 personas)</span><span class="row-val">$'+fNum(alm2)+'</span></div>'
+    +((datos.cena2||0)>0?'<div class="row"><span class="row-lbl">Cenas ('+(datos.cenasExtra||0)+' noche/s × 2 personas)</span><span class="row-val">$'+fNum(datos.cena2)+'</span></div>':'')
+    +((datos.combustVuelta||0)>0?'<div class="row"><span class="row-lbl">Combustible vuelta ('+km+' km)</span><span class="row-val">$'+fNum(datos.combustVuelta)+'</span></div>':'')
+    +((datos.combustExtra||0)>0?'<div class="row"><span class="row-lbl">Combustible extra ('+(datos.kmExtra||0)+' km locales)</span><span class="row-val">$'+fNum(datos.combustExtra)+'</span></div>':'')
+    +((datos.cargasVirt||0)>0?'<div class="row"><span class="row-lbl">Cargas virtuales</span><span class="row-val">$'+fNum(datos.cargasVirt)+'</span></div>':'')
+    +((datos.extras||0)>0?'<div class="row"><span class="row-lbl">Extras / imprevistos</span><span class="row-val">$'+fNum(datos.extras)+'</span></div>':'')
     +'</div>'
     +'<div class="total-box"><span class="total-lbl">TOTAL TRANSFERIDO A GABRIEL RODRIGUEZ</span><span class="total-val">$'+fNum(totalTransf)+'</span></div>'
     +'<div class="notas">'
