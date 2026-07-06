@@ -485,6 +485,7 @@ try{var _rls=lsGet('bb_rec','');if(_rls){var _rp=JSON.parse(_rls);if(_rp&&_rp.le
 const CFG_DEFS=[
   {cat:'fuel',ico:'⛽',k:'gasoil_precio',lbl:'Precio gasoil ($/L)',sub:'Actualizalo cuando cambie',def:1600},
   {cat:'fuel',ico:'🚗',k:'km_litro',lbl:'Consumo (km/L)',sub:'Hilux diésel',def:7.5},
+  {cat:'fuel',ico:'🛢️',k:'tanque_litros',lbl:'Tanque (litros)',sub:'Capacidad Hilux',def:80},
   {cat:'fuel',ico:'🛣️',k:'peaje',lbl:'Peajes (USD ida)',sub:'0 si no aplica',def:0},
   {cat:'precios',ico:'💚',k:'p_gt60',lbl:'Precio +60 BB (USD)',sub:'Más de 60',def:25},
   {cat:'precios',ico:'💛',k:'p_40_60',lbl:'Precio 40-60 BB (USD)',sub:'Entre 40 y 60',def:30},
@@ -674,7 +675,10 @@ n('btn-gen-msg').addEventListener('click',function(){
   var kmExtra=parseInt(n('f-km-extra').value)||0;
   var pKmExtra=parseFloat(cfg.km_extra_precio)||250;
   var combustExtra=kmExtra*pKmExtra;
-  var combustVuelta=km>0?Math.round(km/(parseFloat(cfg.km_litro)||7.5)*(parseFloat(cfg.gasoil_precio)||1600)):0;
+  var _kmL=parseFloat(cfg.km_litro)||7.5, _tanque=parseFloat(cfg.tanque_litros)||80, _gp=parseFloat(cfg.gasoil_precio)||1600;
+  var _litrosViaje=km>0?(km*2)/_kmL:0;
+  var _litrosExtra=Math.max(0,_litrosViaje-_tanque);
+  var combustVuelta=Math.round(_litrosExtra*_gp);
   var cargasVirt=parseFloat(n('f-cargas-virt').value)||0;
   var extrasImp=parseFloat(n('f-extras').value)||0;
   var totalFinal=vd.total+combustVuelta+combustExtra+cargasVirt+extrasImp;
@@ -715,7 +719,9 @@ n('btn-save-svc').addEventListener('click',function(){
   var kmExtraV=parseInt(n('f-km-extra').value)||0;
   var combustExtra=kmExtraV*(parseFloat(cfg.km_extra_precio)||250);
   var cliKmV=(CLIENTES.find(function(c){return c.n===cl2;})||{}).km||KM[cl2]||0;
-  var combustVueltaV=cliKmV>0?Math.round(cliKmV/(parseFloat(cfg.km_litro)||7.5)*(parseFloat(cfg.gasoil_precio)||1600)):0;
+  var _kmLv=parseFloat(cfg.km_litro)||7.5, _tanquev=parseFloat(cfg.tanque_litros)||80, _gpv=parseFloat(cfg.gasoil_precio)||1600;
+  var _litrosViajeV=cliKmV>0?(cliKmV*2)/_kmLv:0;
+  var combustVueltaV=Math.round(Math.max(0,_litrosViajeV-_tanquev)*_gpv);
   var cargasVirtV=parseFloat(n('f-cargas-virt').value)||0;
   var extrasV=parseFloat(n('f-extras').value)||0;
   var viatTotal=Math.round(viatBase+combustVueltaV+combustExtra+cargasVirtV+extrasV);
