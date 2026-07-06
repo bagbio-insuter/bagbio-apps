@@ -266,6 +266,7 @@ var MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Se
 var CFG_DEFS=[
   {cat:'fuel',ico:'⛽',k:'gasoil_precio',lbl:'Precio gasoil ($/L)',sub:'',def:1600},
   {cat:'fuel',ico:'🚗',k:'km_litro',lbl:'Consumo (km/L)',sub:'Hilux diesel',def:7.5},
+  {cat:'fuel',ico:'🛢️',k:'tanque_litros',lbl:'Tanque (litros)',sub:'Capacidad Hilux',def:80},
   {cat:'fuel',ico:'🛣️',k:'peaje',lbl:'Peajes USD (ida)',sub:'0 si no aplica',def:0},
   {cat:'fuel',ico:'🚐',k:'km_extra_precio',lbl:'Combustible extra ($/km)',sub:'Movimientos locales técnicos',def:250},
   {cat:'precios',ico:'💚',k:'p_gt60',lbl:'Precio +60 BB (USD)',sub:'',def:25},
@@ -427,7 +428,7 @@ function renderSvc(){
   if(!lista.length){el.innerHTML='<div class="empty"><p>No hay servicios.</p></div>';return;}
   var html='';
   if(!activos.length){html+='<div class="empty"><p>No hay servicios próximos.</p></div>';}
-  var buildCards=function(arr){var hSave=html;html='';arr.forEach(function(s){
+  lista.forEach(function(s){
     var idx=servicios.indexOf(s);
     var e=calcEcon(s),g=gastos[s.id]||{gasoil:0,peajes:0,hotel:0,comidas:0,otros:0};
     var bClass={Completado:'b-comp',Pendiente:'b-pend',Confirmado:'b-conf','En curso':'b-curs'}[s.estado]||'b-pend';
@@ -507,19 +508,8 @@ function renderSvc(){
     html+='<button class="btn-stella" data-stella="'+s.id+'" style="flex:1;background:#25D366;color:white;border:none;border-radius:8px;padding:8px 10px;font-size:12px;font-weight:700;cursor:pointer">💬 Avisar Stella</button>';
     html+='</div>';
     html+='</div></div>';
-  });var r=html;html=hSave;return r;};
-  html+=buildCards(activos);
-  if(pasados.length){
-    html+='<button id="btn-hist-adm" style="width:100%;margin:10px 0;padding:10px;background:#f5f5f5;border:2px dashed #bbb;border-radius:10px;font-size:13px;font-weight:600;color:#777;cursor:pointer">📋 Ver historial ('+pasados.length+' servicio/s)</button>';
-    html+='<div id="sec-hist-adm" style="display:none">'+buildCards(pasados)+'</div>';
-  }
+  });
   el.innerHTML=html;
-  var btnHistAdm=n('btn-hist-adm');
-  if(btnHistAdm){btnHistAdm.addEventListener('click',function(){
-    var sec=n('sec-hist-adm');var vis=sec.style.display!=='none';
-    sec.style.display=vis?'none':'block';
-    btnHistAdm.textContent=vis?'📋 Ver historial ('+pasados.length+' servicio/s)':'📋 Ocultar historial';
-  });}
   el.querySelectorAll('.svc-hdr').forEach(function(hdr){
     hdr.addEventListener('click',function(ev){
       if(ev.target.tagName==='SELECT'||ev.target.tagName==='INPUT'||ev.target.tagName==='BUTTON')return;
@@ -546,30 +536,63 @@ function renderSvc(){
       var s=servicios.find(function(x){return x.id===btn.dataset.stella;});
       if(!s)return;
       var e=calcEcon(s);
-      var d=e.d,km=e.km;
-      // Viáticos: 2 personas por cada ítem
+      var km=e.km||s.kmdest||0;
+      // Usar valores guardados del servicio (cargados desde App Madre vía Supabase)
+      var diasEx=parseInt(s.dias_extra)||0;
+      var dTot=e.d+diasEx;
+      var hotelExtra=parseInt(s.hotel)||0;
+      var nochesTot=Math.max(dTot-1,0)+hotelExtra;
+      var kmExtraSvc=parseInt(s.km_extra)||0;
+      var cargasVirtSvc=parseFloat(s.cargas_virt)||0;
+      var extrasSvc=parseFloat(s.extras)||0;
+      // Precios
       var tc=parseFloat(cfg.tc)||1150;
       var pDesay=parseFloat(cfg.desay)||9000;
       var pMer=parseFloat(cfg.merienda)||9000;
       var pAlm=parseFloat(cfg.almuerzo)||20000;
       var pCena=parseFloat(cfg.cena)||20000;
-      var nochesHotel=Math.max(d-1,0); // noches que duermen afuera
-      var cenasExtra=parseInt(prompt('🌙 ¿Cuántas cenas extra agregar? (noches adicionales, 0 si no hay)',nochesHotel))||0;
-      var kmExtra=parseInt(prompt('🚐 Combustible extra: km movimientos locales (hotel↔empresa, etc.) — 0 si no hay','0'))||0;
       var pKmExtra=parseFloat(cfg.km_extra_precio)||250;
-      var combustExtra=kmExtra*pKmExtra;
-      var desay2=d*2*pDesay;
-      var merienda2=d*2*pMer;
-      var alm2=d*2*pAlm;
-      var cena2=cenasExtra*2*pCena;
-      var totalTransf=desay2+merienda2+alm2+cena2+combustExtra;
-      var hotelInfo=nochesHotel>0?'\n🏨 Hotel: '+nochesHotel+' noche/s — pagar directo desde admin.':'';
-      var msg='Hola Stella! 👋\n\n'+'✅ Servicio confirmado para *'+s.cliente+'*\n'+'📅 Fecha: '+fDate(s.fecha)+'\n'+'📦 Producto: '+(s.producto||'—')+' · '+e.bb+' BB ('+e.tn+' Tn)\n'+'📍 Destino: '+((CLIENTES.find(function(c){return c.n===s.cliente;})||{}).loc||km+' km')+' ('+km+' km)\n'+'👷 Técnicos: Alcides Fabbio y Gabriel Rodriguez\n'+'🗓 Duración estimada: '+d+' día/s\n\n'+'💰 *Transferir a GABRIEL:*\n'+'  · Desayunos ('+d+' días × 2): $'+fNum(desay2)+'\n'+'  · Meriendas ('+d+' días × 2): $'+fNum(merienda2)+'\n'+'  · Almuerzos ('+d+' días × 2): $'+fNum(alm2)+'\n'+(cena2>0?'  · Cenas ('+cenasExtra+' noches × 2): $'+fNum(cena2)+'\n':'')+(combustExtra>0?'  · Combustible extra ('+kmExtra+' km × $'+fNum(pKmExtra)+'): $'+fNum(combustExtra)+'\n':'')+'  ─────────────────\n'+'  *TOTAL: $'+fNum(totalTransf)+'*\n'+hotelInfo+'\n\n⛽ Primer tanque cargado en Dean Funes (cubierto por admin).\n🛣️ Peajes Córdoba: telepeaje — sin transferencia.\n\nGracias!';
+      // Viáticos base (mismo cálculo que App Madre)
+      var desay2=dTot*2*pDesay;
+      var merienda2=dTot*2*pMer;
+      var alm2=dTot*2*pAlm;
+      var cena2=nochesTot*2*pCena;
+      var combustExtra=kmExtraSvc*pKmExtra;
+      // Combustible vuelta: solo cuando la distancia supera el tanque
+      var _kmL=parseFloat(cfg.km_litro)||7.5;
+      var _tanque=parseFloat(cfg.tanque_litros)||80;
+      var _gp=parseFloat(cfg.gasoil_precio)||1600;
+      var _litrosViaje=km>0?(km*2)/_kmL:0;
+      var combustVuelta=Math.round(Math.max(0,_litrosViaje-_tanque)*_gp);
+      var totalTransf=Math.round(desay2+merienda2+alm2+cena2+combustVuelta+combustExtra+cargasVirtSvc+extrasSvc);
+      // Breakdown idéntico al mensaje de App Madre
+      var vLines='  · Desayunos ('+dTot+' días × 2): $'+fNum(desay2)+'\n'+
+        '  · Meriendas ('+dTot+' días × 2): $'+fNum(merienda2)+'\n'+
+        '  · Almuerzos ('+dTot+' días × 2): $'+fNum(alm2)+
+        (cena2>0?'\n  · Cenas ('+nochesTot+' noche/s × 2): $'+fNum(cena2):'')+
+        (combustVuelta>0?'\n  · Combustible vuelta ('+km+' km): $'+fNum(combustVuelta):'')+
+        (combustExtra>0?'\n  · Combustible extra ('+kmExtraSvc+' km): $'+fNum(combustExtra):'')+
+        (cargasVirtSvc>0?'\n  · Cargas virtuales: $'+fNum(cargasVirtSvc):'')+
+        (extrasSvc>0?'\n  · Extras/imprevistos: $'+fNum(extrasSvc):'')+
+        '\n  ──────────────\n  TOTAL A TRANSFERIR: $'+fNum(totalTransf);
+      var hotelInfo=hotelExtra>0?'\n🏨 Hotel: '+hotelExtra+' noche/s adicionale/s — reservar desde admin.':'';
+      var hotelBase=(Math.max(dTot-1,0)>0&&!hotelExtra)?'\n🏨 Hotel: '+Math.max(dTot-1,0)+' noche/s — verificar reserva.':'';
+      var tipoLbl=s.tipo==='sellado'?'Sellado':'Envasado';
+      var msg='✅ SERVICIO CONFIRMADO\n'+
+        'Cliente: '+s.cliente+'\n'+
+        'Producto: '+(s.producto||'—')+' — '+tipoLbl+'\n'+
+        'Big Bags totales: '+e.bb+' ('+e.tn+' Tn)\n'+
+        'Receta N°: '+(s.receta||'—')+' | Duración: '+dTot+' día/s | Fecha: '+fDate(s.fecha)+'\n'+
+        'Técnicos: Alcides Fabbio y Gabriel Rodriguez\n\n'+
+        '💰 Viáticos a transferir a Gabriel:\n'+vLines+'\n'+
+        '→ Pedirle a Stella que transfiera ese monto.'+
+        (diasEx>0?'\n📅 Incluye '+diasEx+' día/s extra de viáticos.':'')+
+        hotelInfo+hotelBase;
       var tel='5493516888529';
       window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
       // Generar comprobante de viáticos
       setTimeout(function(){
-        genComprobanteViaticos(s,{d:d,km:km,desay2:desay2,merienda2:merienda2,alm2:alm2,cena2:cena2,cenasExtra:cenasExtra,combustExtra:combustExtra,kmExtra:kmExtra,totalTransf:totalTransf,tc:tc});
+        genComprobanteViaticos(s,{d:dTot,km:km,desay2:desay2,merienda2:merienda2,alm2:alm2,cena2:cena2,cenasExtra:nochesTot,combustExtra:combustExtra,kmExtra:kmExtraSvc,totalTransf:totalTransf,tc:tc,combustVuelta:combustVuelta});
       },800);
     });
   });
@@ -601,6 +624,33 @@ function renderSvc(){
       renderStats();renderSvc();toast('✅ Estado actualizado');
     });
   });
+  // Post-procesado: mover cards de pasados a sección oculta
+  if(pasados.length){
+    var pasadosIds=pasados.map(function(s){return s.id;});
+    var allCards=Array.prototype.slice.call(el.querySelectorAll('.svc-card'));
+    var pasadoCards=allCards.filter(function(card){
+      var idx=parseInt(card.dataset.idx);
+      var s=servicios[idx];
+      return s&&pasadosIds.indexOf(s.id)>=0;
+    });
+    if(pasadoCards.length){
+      var toggleBtn=document.createElement('button');
+      toggleBtn.id='btn-hist-adm';
+      toggleBtn.setAttribute('style','width:100%;margin:10px 0;padding:10px;background:#f5f5f5;border:2px dashed #bbb;border-radius:10px;font-size:13px;font-weight:600;color:#777;cursor:pointer');
+      toggleBtn.textContent='📋 Ver historial ('+pasadoCards.length+' servicio/s)';
+      var histSec=document.createElement('div');
+      histSec.id='sec-hist-adm';
+      histSec.style.display='none';
+      el.insertBefore(toggleBtn,pasadoCards[0]);
+      el.insertBefore(histSec,pasadoCards[0]);
+      pasadoCards.forEach(function(card){histSec.appendChild(card);});
+      toggleBtn.addEventListener('click',function(){
+        var vis=histSec.style.display!=='none';
+        histSec.style.display=vis?'none':'block';
+        toggleBtn.textContent=vis?'📋 Ver historial ('+pasadoCards.length+' servicio/s)':'📋 Ocultar historial';
+      });
+    }
+  }
 }
 function renderLiq(){
   var val=n('mes-sel').value.split('-');
