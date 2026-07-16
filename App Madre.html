@@ -1376,6 +1376,7 @@ function generarPDF(titulo, elId){
     '<div class="badge">'+titulo+'</div>'+
     '<div class="content">'+lineas+'</div>'+
     '<div class="footer">Bag Bio / Control Bio — Generado el '+new Date().toLocaleDateString('es-AR')+'</div>'+
+    '<button onclick="window.close()" style="position:fixed;top:14px;right:14px;background:#c62828;color:white;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;font-weight:700;cursor:pointer;z-index:999;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,0.3)" title="Cerrar">×</button>'+
     '</body></html>';
   var w=window.open('','_blank');
   w.document.write(html);

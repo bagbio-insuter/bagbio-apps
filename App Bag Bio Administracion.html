@@ -914,6 +914,7 @@ function genRecibo(tec,mes,anio){
       +'<div class="firma-linea">Autorizado por</div><div class="firma-sub">Stella Lobos</div></div>'
       +'</div>'
       +'<div class="nota">Este comprobante es un respaldo interno de pago de jornales. No constituye recibo oficial de sueldo.</div>'
+      +'<button onclick="window.close()" style="position:fixed;top:14px;right:14px;background:#c62828;color:white;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;font-weight:700;cursor:pointer;z-index:999;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,0.3)" title="Cerrar">×</button>'
       +'</body></html>';
     var w=window.open('','_blank');
     if(w){w.document.write(recibo);w.document.close();setTimeout(function(){w.print();},600);}
@@ -1200,6 +1201,7 @@ function genComprobanteViaticos(s, datos){
     +'<div class="sello-blk"><div class="sello-linea">Autorizado por</div><div class="sello-sub">Administración — Bag Bio / Control Bio</div></div>'
     +'<div class="sello-blk" style="text-align:right"><div class="sello-linea">Receptor</div><div class="sello-sub">Gabriel Rodriguez</div></div>'
     +'</div>'
+    +'<button onclick="window.close()" style="position:fixed;top:14px;right:14px;background:#c62828;color:white;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;font-weight:700;cursor:pointer;z-index:999;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,0.3)" title="Cerrar">×</button>'
     +'</body></html>';
   var w=window.open('','_blank');
   if(w){w.document.write(doc);w.document.close();setTimeout(function(){w.print();},600);}
