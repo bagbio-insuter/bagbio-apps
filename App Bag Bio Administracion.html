@@ -32,7 +32,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .header img{height:36px;width:auto;}
 .header-title{color:white;font-size:16px;font-weight:800;letter-spacing:.5px;}
 .header-sub{font-size:10px;font-weight:600;color:rgba(255,255,255,0.7);letter-spacing:.8px;text-transform:uppercase;margin-top:1px;}
-.sync-btn{margin-left:auto;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);color:white;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .2s;}
+.sync-btn{margin-left:auto;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);color:white;border-radius:20px;padding:6px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:0;transition:background .2s;}
 .sync-btn:hover{background:rgba(255,255,255,0.28);}
 .dot{width:8px;height:8px;border-radius:50%;background:#4CAF50;display:inline-block;}
 .dot.off{background:#f44336;}.dot.sync{background:#FF9800;animation:pu 1s infinite;}
@@ -201,6 +201,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#333;color:white;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 .toast.on{opacity:1;}
 .dias-b{display:inline-flex;align-items:center;gap:6px;background:var(--azl);color:var(--az);padding:7px 13px;border-radius:20px;font-size:13px;font-weight:700;margin-top:8px;}
+#syncLbl{display:none!important;}
 </style>
 </head>
 <body>
@@ -429,7 +430,7 @@ function mapClientes(rows){
 
 
 async function syncData(){
-  n('syncDot').className='dot sync';n('syncLbl').textContent='...';
+  n('syncDot').className='dot sync';
   try{
     var cfgR=await sbGet('config');
     var svcs=await sbGet('servicios','select=*&order=fecha.desc');
@@ -443,9 +444,9 @@ async function syncData(){
     if(Array.isArray(clis)&&clis.length){CLIENTES=mapClientes(clis);lsSet('bba_cli',JSON.stringify(CLIENTES));}
     lsSet('bba_s',JSON.stringify(servicios));lsSet('bba_c',JSON.stringify(cfg));lsSet('bba_cl',JSON.stringify(cl));
     renderStats();renderSvc();renderCL();
-    n('syncDot').className='dot';n('syncLbl').textContent='OK';setTimeout(function(){n('syncLbl').textContent='Sincronizar';},3000);
+    n('syncDot').className='dot';
     toast('\u2705 Sincronizado: '+servicios.length+' servicios \u00b7 '+sbGastos.length+' gastos');
-  }catch(e){n('syncDot').className='dot off';n('syncLbl').textContent='Error';toast('Error: '+e.message);}
+  }catch(e){n('syncDot').className='dot off';toast('\u26a0\ufe0f Sin conexi\u00f3n \u2014 los datos pueden no estar actualizados');}
 }
 
 async function postAPI(action,payload){
@@ -1357,6 +1358,15 @@ function exportarGastosExcel(svcId){
   a.download='Rendicion_'+s.cliente+'_'+(s.fecha||'').replace(/-/g,'')+'.xls';
   a.click();
 }
+
+// ── AUTO-SYNC ────────────────────────────────────────────────────────────────
+(function(){
+  setInterval(syncData, 3 * 60 * 1000);
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden) syncData();
+  });
+})();
+
 </script>
 </body>
 </html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                 

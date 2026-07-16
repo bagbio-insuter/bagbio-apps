@@ -69,6 +69,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 #err-banner{display:none;background:#ff4444;color:white;padding:8px 14px;font-size:12px;position:fixed;top:60px;left:0;right:0;z-index:9999;word-break:break-all;}
 .no-svc{text-align:center;padding:40px 20px;color:var(--text2);}
 .no-svc .ico{font-size:48px;margin-bottom:12px;}
+#syncLbl{display:none!important;}
 </style>
 </head>
 <body>
@@ -371,9 +372,18 @@ document.querySelectorAll('.tab').forEach(function(tb){
 });
 
 // ===== SYNC =====
-n('syncBtn').addEventListener('click',function(){syncData();});
+n('syncBtn').addEventListener('click',function(){syncData();
+
+// ── AUTO-SYNC ────────────────────────────────────────────────────────────────
+(function(){
+  setInterval(syncData, 3 * 60 * 1000);
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden) syncData();
+  });
+})();
+});
 function syncData(){
-  n('syncDot').className='dot sync';n('syncLbl').textContent='...';
+  n('syncDot').className='dot sync';
   // Traer servicios activos (Confirmado + En curso), URL encoded
   Promise.all([
     sbGet('servicios','select=*&estado=in.(Pendiente,Confirmado,En%20curso,Completado)&order=fecha.asc'),
@@ -418,8 +428,8 @@ function syncData(){
     }
     renderServicios();
     if(window._currentTab==='gastos')renderGastos();
-    n('syncDot').className='dot';n('syncLbl').textContent='OK';
-    setTimeout(function(){n('syncLbl').textContent='Sincronizar';},2000);
+    n('syncDot').className='dot';
+    
     // Subir gastos locales pendientes
     var pendientes=gastos.filter(function(g){return !g.sb_synced;});
     if(pendientes.length>0){
@@ -430,8 +440,8 @@ function syncData(){
     }
     toast('Sincronizado ✓'+(pendientes.length>0?' · '+pendientes.length+' gastos enviados':''));
   }).catch(function(){
-    n('syncDot').className='dot off';n('syncLbl').textContent='Error';
-    setTimeout(function(){n('syncLbl').textContent='Sincronizar';},2000);
+    n('syncDot').className='dot off';
+    toast('⚠️ Sin conexión — los datos pueden no estar actualizados');
   });
 }
 

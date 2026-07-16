@@ -36,7 +36,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .header img{height:36px;width:auto;}
 .header-title{color:white;font-size:16px;font-weight:800;letter-spacing:.5px;}
 .header-sub{font-size:10px;font-weight:600;color:rgba(255,255,255,0.7);letter-spacing:.8px;text-transform:uppercase;margin-top:1px;}
-.sync-btn{margin-left:auto;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);color:white;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .2s;}
+.sync-btn{margin-left:auto;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);color:white;border-radius:20px;padding:6px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:0;transition:background .2s;}
 .sync-btn:hover{background:rgba(255,255,255,0.28);}
 .dot{width:8px;height:8px;border-radius:50%;background:#4CAF50;}
 .dot.off{background:#f44336;}.dot.sync{background:#FF9800;animation:pu 1s infinite;}
@@ -214,6 +214,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .cal-day.vacio{background:transparent;border:none;}
 .cal-dn{font-weight:600;margin-bottom:3px;}
 .cal-cli{font-size:9px;font-weight:700;text-align:center;line-height:1.1;max-width:100%;overflow:hidden;}
+#syncLbl{display:none!important;}
 </style>
 </head>
 <body>
@@ -1178,7 +1179,7 @@ function mapClientes(rows){
 }
 
 function syncData(){
-  n('syncDot').className='dot sync';n('syncLbl').textContent='...';
+  n('syncDot').className='dot sync';
   Promise.all([
     sbGet('config'),
     sbGet('servicios','select=*&order=fecha.desc'),
@@ -1211,9 +1212,9 @@ function syncData(){
     }
     lsSet('bb_s',JSON.stringify(servicios));lsSet('bb_c',JSON.stringify(cfg));lsSet('bb_cl',JSON.stringify(cl));
     renderAgenda();renderCL();renderCfg();renderClientes();populateClienteSel();
-    n('syncDot').className='dot';n('syncLbl').textContent='OK';setTimeout(function(){n('syncLbl').textContent='Sincronizar';},3000);
-    toast('\u2705 Sincronizado');
-  }).catch(function(){n('syncDot').className='dot off';n('syncLbl').textContent='Error';toast('Error de conexi\u00f3n');});
+    n('syncDot').className='dot';
+    
+  }).catch(function(){n('syncDot').className='dot off';toast('⚠️ Sin conexión — los datos pueden no estar actualizados');});
 }
 
 async function postAPI(action,payload){
@@ -1466,6 +1467,15 @@ function generarPDF(titulo, elId){
 }
 
 syncData();
+
+// ── AUTO-SYNC ────────────────────────────────────────────────────────────────
+(function(){
+  setInterval(syncData, 3 * 60 * 1000);
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden) syncData();
+  });
+})();
+
 </script>
 </body>
 </html>
