@@ -235,12 +235,21 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
   <div id="list-rendicion"></div>
 </div>
 
+<div class="screen" id="sc-st-adm">
+  <div style="background:#1a237e;color:white;padding:12px 16px;margin:-16px -16px 14px;display:flex;justify-content:space-between;align-items:center">
+    <div style="font-weight:700;font-size:15px">🔧 Servicios Técnicos</div>
+    <button id="adm-st-sync" style="background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.4);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer">🔄 Actualizar</button>
+  </div>
+  <div id="adm-st-lista"><div style="text-align:center;color:#aaa;padding:30px">Presioná Actualizar para cargar los servicios técnicos.</div></div>
+</div>
+
 <div class="tabs">
   <button class="tab active" data-screen="servicios"><span class="ico">📋</span>Servicios</button>
   <button class="tab" data-screen="calendario"><span class="ico">📆</span>Agenda</button>
   <button class="tab" data-screen="liq"><span class="ico">💵</span>Liquidacion</button>
   <button class="tab" data-screen="checklist"><span class="ico">✅</span>Checklist</button>
   <button class="tab" data-screen="config"><span class="ico">⚙️</span>Config</button>
+  <button class="tab" data-screen="st-adm"><span class="ico">🔧</span>ST</button>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -342,6 +351,7 @@ document.querySelectorAll('.tab').forEach(function(tab){
     if(sc==='checklist')renderCL();
     if(sc==='liq')renderLiq();
     if(sc==='calendario')renderCalendario();
+    if(sc==='st-adm')renderSTAdm();
   });
 });
 
@@ -780,6 +790,36 @@ function initMesSel(){
   n('mes-sel').addEventListener('change',renderLiq);
 }
 initMesSel();renderStats();renderFiltros();renderSvc();renderCL();
+
+// ===== SERVICIOS TÉCNICOS — ADMIN =====
+function renderSTAdm(){
+  var el=n('adm-st-lista');
+  el.innerHTML='<div style="text-align:center;color:#aaa;padding:20px">Cargando...</div>';
+  sbGet('servicios_tecnicos','select=*&order=fecha.desc').then(function(rows){
+    if(!Array.isArray(rows)||!rows.length){
+      el.innerHTML='<div style="text-align:center;color:#aaa;padding:30px;font-size:14px">Sin servicios técnicos registrados aún.</div>';
+      return;
+    }
+    var html='';
+    rows.forEach(function(st){
+      var tecs=[];try{tecs=JSON.parse(st.tecnicos||'[]');}catch(e){}
+      var fD=st.fecha?st.fecha.split('-').reverse().join('/'):'—';
+      html+='<div style="background:white;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,.08);border-left:4px solid #1a237e">';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+      html+='<span style="font-weight:700;color:#1a237e;font-size:13px">'+st.id+'</span>';
+      html+='<span style="font-size:12px;color:#888">'+fD+'</span></div>';
+      html+='<div style="font-weight:700;font-size:14px;margin-bottom:3px">'+st.cliente+'</div>';
+      if(st.maquina)html+='<div style="font-size:12px;color:#555;margin-bottom:3px">🔧 '+st.maquina+'</div>';
+      if(tecs.length)html+='<div style="font-size:12px;color:#555;margin-bottom:6px">👷 '+tecs.join(', ')+'</div>';
+      if(st.problematica)html+='<div style="font-size:12px;color:#777;font-style:italic;margin-bottom:6px">'+st.problematica.substring(0,80)+(st.problematica.length>80?'…':'')+'</div>';
+      var horario=(st.hora_ingreso||'—')+' – '+(st.hora_egreso||'—')+' hs';
+      html+='<div style="font-size:11px;color:#aaa">⏱ '+horario+'</div>';
+      html+='</div>';
+    });
+    el.innerHTML=html;
+  }).catch(function(){el.innerHTML='<div style="text-align:center;color:#c62828;padding:20px">Error al cargar. Verificá conexión.</div>';});
+}
+n('adm-st-sync').addEventListener('click',renderSTAdm);
 
 var calAnio=new Date().getFullYear();
 var calMes=new Date().getMonth();
