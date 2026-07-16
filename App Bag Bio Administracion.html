@@ -656,12 +656,15 @@ function renderSvc(){
         '→ Pedirle a Stella que transfiera ese monto.'+
         (diasEx>0?'\n📅 Incluye '+diasEx+' día/s extra de viáticos.':'')+
         hotelInfo+hotelBase;
-      var tel='5493516888529';
-      window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
-      // Generar comprobante de viáticos
-      setTimeout(function(){
-        genComprobanteViaticos(s,{d:dTot,km:km,desay2:desay2,merienda2:merienda2,alm2:alm2,cena2:cena2,cenasExtra:nochesTot,combustExtra:combustExtra,kmExtra:kmExtraSvc,cargasVirt:cargasVirtSvc,extras:extrasSvc,totalTransf:totalTransf,tc:tc,combustVuelta:combustVuelta});
-      },800);
+      // PDF directo para Stella (sin WhatsApp)
+      genOrdenStella(s, {
+        dTot:dTot, km:km, nochesTot:nochesTot, hotelExtra:hotelExtra,
+        diasEx:diasEx, kmExtraSvc:kmExtraSvc,
+        desay2:desay2, merienda2:merienda2, alm2:alm2, cena2:cena2,
+        combustVuelta:combustVuelta, combustExtra:combustExtra,
+        cargasVirt:cargasVirtSvc, extras:extrasSvc,
+        totalTransf:totalTransf, tc:tc, e:e
+      });
     });
   });
   el.querySelectorAll('[data-jesi]').forEach(function(btn){
@@ -1305,6 +1308,122 @@ function genComprobanteViaticos(s, datos){
   if(w){w.document.write(doc);w.document.close();setTimeout(function(){w.print();},600);}
   else{toast('Habilitá las ventanas emergentes para imprimir');}
 }
+
+function genOrdenStella(s, d){
+  var fDate=function(f){if(!f)return '—';if(/^\d{4}-/.test(f)){var p=f.split('-');return p[2]+'/'+p[1]+'/'+p[0];}return f;};
+  var fNum=function(n){return Math.round(n).toLocaleString('es-AR');};
+  var tipoLbl=s.tipo==='sellado'?'Sellado':'Envasado MAP';
+  var fecha=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+  var items=[
+    {lbl:'Desayunos ('+d.dTot+' día/s × 2 personas)', val:d.desay2},
+    {lbl:'Meriendas ('+d.dTot+' día/s × 2 personas)', val:d.merienda2},
+    {lbl:'Almuerzos ('+d.dTot+' día/s × 2 personas)', val:d.alm2}
+  ];
+  if(d.cena2>0)  items.push({lbl:'Cenas ('+d.nochesTot+' noche/s × 2 personas)', val:d.cena2});
+  if(d.combustVuelta>0) items.push({lbl:'Combustible vuelta ('+d.km+' km — excede tanque)', val:d.combustVuelta});
+  if(d.combustExtra>0) items.push({lbl:'Combustible adicional ('+d.kmExtraSvc+' km extra)', val:d.combustExtra});
+  if(d.cargasVirt>0) items.push({lbl:'Cargas virtuales', val:d.cargasVirt});
+  if(d.extras>0) items.push({lbl:'Gastos extras / imprevistos', val:d.extras});
+
+  var rowsHTML='';
+  var subtot=0;
+  items.forEach(function(it,i){
+    subtot+=it.val;
+    rowsHTML+='<tr style="background:'+(i%2===0?'#fafafa':'white')+'">'+
+      '<td style="padding:10px 14px;border-bottom:1px solid #e8e8e8;font-size:13px;">'+it.lbl+'</td>'+
+      '<td style="padding:10px 14px;border-bottom:1px solid #e8e8e8;font-size:13px;text-align:right;font-weight:600;">$'+fNum(it.val)+'</td>'+
+    '</tr>';
+  });
+
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+    '<title>Orden Transferencia — '+s.cliente+'</title>'+
+    '<style>'+
+      'body{font-family:"Segoe UI",Arial,sans-serif;margin:0;padding:30px 40px;color:#212121;background:white;}'+
+      '.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:18px;border-bottom:3px solid #1a237e;}'+
+      '.logo-area h1{margin:0;font-size:22px;font-weight:900;color:#1a237e;}'+
+      '.logo-area p{margin:4px 0 0;font-size:12px;color:#888;}'+
+      '.doc-info{text-align:right;}'+
+      '.doc-info .tipo{font-size:18px;font-weight:800;color:#1a237e;letter-spacing:1px;}'+
+      '.doc-info .fecha{font-size:12px;color:#888;margin-top:4px;}'+
+      '.section{margin-bottom:22px;}'+
+      '.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #eee;}'+
+      '.info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}'+
+      '.info-cell{background:#f8f8f8;border-radius:8px;padding:10px 14px;}'+
+      '.info-cell .lbl{font-size:10px;color:#aaa;text-transform:uppercase;font-weight:600;}'+
+      '.info-cell .val{font-size:14px;font-weight:700;margin-top:2px;color:#212121;}'+
+      'table{width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);}'+
+      'thead tr{background:#1a237e;}'+
+      'thead th{color:white;padding:11px 14px;font-size:12px;font-weight:700;text-align:left;letter-spacing:.5px;}'+
+      'thead th:last-child{text-align:right;}'+
+      '.total-row td{background:#1a237e;color:white;font-weight:800;font-size:15px;padding:13px 14px;}'+
+      '.total-row td:last-child{text-align:right;font-size:17px;}'+
+      '.beneficiario{background:#E8F5E9;border:1px solid #A5D6A7;border-radius:10px;padding:14px 18px;margin-top:18px;display:flex;justify-content:space-between;align-items:center;}'+
+      '.ben-label{font-size:11px;color:#555;font-weight:600;text-transform:uppercase;}'+
+      '.ben-name{font-size:16px;font-weight:800;color:#1B5E20;margin-top:2px;}'+
+      '.ben-total{text-align:right;}'+
+      '.ben-total .tot-lbl{font-size:11px;color:#555;text-transform:uppercase;}'+
+      '.ben-total .tot-val{font-size:24px;font-weight:900;color:#1B5E20;}'+
+      '.firma-row{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:28px;}'+
+      '.firma-box{border-top:2px solid #ccc;padding-top:8px;}'+
+      '.firma-label{font-size:11px;color:#888;text-transform:uppercase;}'+
+      '.footer{margin-top:24px;text-align:center;font-size:10px;color:#bbb;border-top:1px solid #eee;padding-top:12px;}'+
+      '@media print{button{display:none!important}}'+
+    '</style></head><body>'+
+    '<button onclick="window.close()" style="position:fixed;top:14px;right:14px;background:#c62828;color:white;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;font-weight:700;cursor:pointer;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,.3)">×</button>'+
+
+    '<div class="header">'+
+      '<div class="logo-area">'+
+        '<h1>Bag Bio / Control Bio</h1>'+
+        '<p>Servicios de Atmósfera Modificada · Dean Funes, Córdoba</p>'+
+      '</div>'+
+      '<div class="doc-info">'+
+        '<div class="tipo">ORDEN DE TRANSFERENCIA</div>'+
+        '<div class="fecha">Generado: '+fecha+'</div>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="section">'+
+      '<div class="section-title">Datos del servicio</div>'+
+      '<div class="info-grid">'+
+        '<div class="info-cell"><div class="lbl">Cliente</div><div class="val">'+s.cliente+'</div></div>'+
+        '<div class="info-cell"><div class="lbl">Fecha</div><div class="val">'+fDate(s.fecha)+'</div></div>'+
+        '<div class="info-cell"><div class="lbl">Tipo</div><div class="val">'+tipoLbl+'</div></div>'+
+        '<div class="info-cell"><div class="lbl">Producto</div><div class="val">'+(s.producto||'—')+'</div></div>'+
+        '<div class="info-cell"><div class="lbl">Big Bags</div><div class="val">'+d.e.bb+' BB ('+d.e.tn+' Tn)</div></div>'+
+        '<div class="info-cell"><div class="lbl">Duración</div><div class="val">'+d.dTot+' día/s'+((d.hotelExtra>0)?' · '+d.hotelExtra+' noche/s extra':'')+'</div></div>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="section">'+
+      '<div class="section-title">Detalle de viáticos a transferir</div>'+
+      '<table>'+
+        '<thead><tr><th>Concepto</th><th>Monto</th></tr></thead>'+
+        '<tbody>'+rowsHTML+
+        '<tr class="total-row"><td>TOTAL A TRANSFERIR</td><td>$'+fNum(d.totalTransf)+'</td></tr>'+
+        '</tbody>'+
+      '</table>'+
+    '</div>'+
+
+    '<div class="beneficiario">'+
+      '<div><div class="ben-label">Transferir a nombre de</div><div class="ben-name">Gabriel Rodriguez</div></div>'+
+      '<div class="ben-total"><div class="tot-lbl">Monto total</div><div class="tot-val">$'+fNum(d.totalTransf)+'</div></div>'+
+    '</div>'+
+
+    '<div class="firma-row">'+
+      '<div class="firma-box"><div class="firma-label">Autorizado por (Administración)</div></div>'+
+      '<div class="firma-box"><div class="firma-label">Fecha de pago</div></div>'+
+    '</div>'+
+
+    '<div class="footer">Bag Bio / Control Bio · Orden generada automáticamente · '+fecha+'</div>'+
+    '</body></html>';
+
+  var w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(function(){w.print();},600);
+}
+
 
 
 function calcViaticos(s){
