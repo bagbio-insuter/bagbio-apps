@@ -258,46 +258,40 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 
 <!-- TAB: SERVICIO TÉCNICO -->
 <div class="screen" id="sc-st">
-  <div style="background:#1a237e;color:white;padding:12px 16px;margin:-16px -16px 14px;display:flex;justify-content:space-between;align-items:center">
-    <div style="font-weight:700;font-size:15px">🔧 Servicios Técnicos</div>
-    <button id="btn-nuevo-st" style="background:white;color:#1a237e;border:none;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer">+ Nuevo</button>
+  <div style="background:linear-gradient(135deg,#004D40,#00695C);color:white;padding:12px 16px;margin:-16px -16px 14px;display:flex;justify-content:space-between;align-items:center">
+    <div style="font-weight:700;font-size:15px">🔧 Órdenes de Servicio Técnico</div>
+    <button id="btn-st-refresh" style="background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.4);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer">🔄 Actualizar</button>
   </div>
-  <div id="st-form-wrap" style="display:none">
-    <div style="background:#f0f4ff;border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid #c5cae9">
-      <div style="font-weight:700;color:#1a237e;margin-bottom:12px;font-size:14px">Nuevo Servicio Técnico</div>
-      <div class="field"><label>Cliente</label><select id="st-cliente" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px"><option value="">Seleccioná...</option></select></div>
-      <div class="field"><label>Máquina / Equipo</label><input type="text" id="st-maquina" placeholder="Modelo, número de serie..."></div>
-      <div class="field"><label>Problemática</label><textarea id="st-problema" rows="3" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;resize:vertical" placeholder="Describí la falla o el trabajo solicitado..."></textarea></div>
-      <div class="field"><label>Trabajos realizados</label><textarea id="st-trabajos" rows="3" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;resize:vertical" placeholder="Detallá todo lo que se hizo..."></textarea></div>
-      <div class="field"><label>Piezas / materiales</label><textarea id="st-piezas" rows="2" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;resize:vertical" placeholder="Lista de repuestos y materiales utilizados..."></textarea></div>
-      <div class="field"><label>Fecha</label><input type="date" id="st-fecha"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="field"><label>Hora ingreso</label><input type="time" id="st-ingreso"></div>
-        <div class="field"><label>Hora egreso</label><input type="time" id="st-egreso"></div>
-      </div>
-      <div class="field">
-        <label>Técnicos</label>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;background:white;border-radius:8px;padding:10px;border:2px solid #e0e0e0">
-          <label style="display:flex;align-items:center;gap:10px;font-weight:normal;font-size:14px"><input type="checkbox" id="st-tec-alcides" value="Alcides Fabbio"> Alcides Fabbio</label>
-          <label style="display:flex;align-items:center;gap:10px;font-weight:normal;font-size:14px"><input type="checkbox" id="st-tec-gabriel" value="Gabriel Rodriguez"> Gabriel Rodriguez</label>
-          <label style="display:flex;align-items:center;gap:10px;font-weight:normal;font-size:14px"><input type="checkbox" id="st-tec-marcelo" value="Marcelo"> Marcelo</label>
-          <input type="text" id="st-tec-otros" placeholder="Otros (separados por coma)..." style="padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px">
-        </div>
-      </div>
-      <div class="field"><label>🏨 Noches de hotel</label><input type="number" id="st-hotel" value="0" min="0"></div>
-      <div class="field"><label>Observaciones</label><textarea id="st-obs" rows="2" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;resize:vertical" placeholder="Opcional..."></textarea></div>
-      <div class="field">
-        <label>📷 Fotos (hasta 6 — abre cámara)</label>
-        <input type="file" id="st-fotos" accept="image/*" multiple capture="environment" style="margin-top:8px;font-size:13px">
-        <div id="st-fotos-preview" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px"></div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:16px">
-        <button id="btn-st-guardar" style="flex:1;background:#1a237e;color:white;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer">💾 Guardar y generar informe</button>
-        <button id="btn-st-cancelar" style="background:#f5f5f5;color:#555;border:2px solid #ddd;border-radius:10px;padding:13px 16px;font-size:14px;cursor:pointer">✕</button>
+  <div id="st-lista-tec"><div style="text-align:center;color:#aaa;padding:30px">Cargando órdenes...</div></div>
+
+  <!-- Panel de ejecución (oculto hasta seleccionar orden) -->
+  <div id="st-exec-panel" style="display:none;position:fixed;inset:0;background:white;z-index:500;overflow-y:auto;padding:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button id="st-exec-back" style="background:none;border:none;font-size:22px;cursor:pointer">←</button>
+      <div>
+        <div id="st-exec-id" style="font-size:11px;font-weight:700;color:#00695C"></div>
+        <div id="st-exec-cliente" style="font-size:16px;font-weight:800"></div>
       </div>
     </div>
+    <div id="st-exec-info" style="background:#f5f5f5;border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;line-height:1.6"></div>
+    <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;margin-bottom:8px">Registrar ejecución</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="field"><label>Hora ingreso</label><input id="st-exec-hi" type="time"></div>
+      <div class="field"><label>Hora egreso</label><input id="st-exec-he" type="time"></div>
+    </div>
+    <div class="field"><label>Trabajos realizados</label><textarea id="st-exec-trabajos" rows="3" style="resize:vertical" placeholder="Describí qué hiciste, qué reparaste, cómo quedó..."></textarea></div>
+    <div class="field"><label>Piezas / Repuestos utilizados</label><textarea id="st-exec-piezas" rows="2" style="resize:vertical" placeholder="Ej: Sello 45mm x2, correa B48..."></textarea></div>
+    <div class="field">
+      <label>Fotos del trabajo</label>
+      <input type="file" id="st-exec-fotos" accept="image/*" multiple capture="environment" style="display:none">
+      <button onclick="n('st-exec-fotos').click()" style="width:100%;padding:12px;border:2px dashed #ccc;border-radius:10px;background:white;font-size:13px;color:#555;cursor:pointer">📷 Agregar fotos</button>
+      <div id="st-exec-fotos-prev" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
+    </div>
+    <div class="field"><label>Observaciones</label><textarea id="st-exec-obs" rows="2" style="resize:vertical" placeholder="Observaciones adicionales..."></textarea></div>
+    <input type="hidden" id="st-exec-current-id">
+    <button id="btn-st-exec-guardar" class="btn" style="background:linear-gradient(135deg,#00695C,#004D40);color:white;margin-bottom:8px">✅ Marcar como Realizado</button>
+    <button id="btn-st-exec-parcial" class="btn" style="background:white;border:2px solid #00695C;color:#00695C">💾 Guardar avance (En curso)</button>
   </div>
-  <div id="st-lista"><div style="text-align:center;color:#aaa;padding:30px;font-size:14px">Sin servicios técnicos registrados.<br>Presioná <b>+ Nuevo</b> para crear uno.</div></div>
 </div>
 
 </div><!-- end .content -->
@@ -367,7 +361,7 @@ document.querySelectorAll('.tab').forEach(function(tb){
     if(sc==='gastos')renderGastos();
     if(sc==='cerrar')renderCerrar();
     if(sc==='hilux')renderHilux();
-    if(sc==='st')renderST();
+    if(sc==='st')cargarSTTec();
   });
 });
 
@@ -833,241 +827,139 @@ n('hx-btn-reg').addEventListener('click',function(){
 });
 
 // ===== SERVICIO TÉCNICO (ST) =====
-var serviciosTec=JSON.parse(lsGet('bbt_st','[]'));
-var stFotosData=[];
+var // ===== ST TÉCNICOS — recibe órdenes de App Madre =====
+var stExecFotos = [];
+var stListaTec = [];
 
-function getNextSTId(){
-  var yr=new Date().getFullYear();
-  var all=serviciosTec.filter(function(s){return s.id&&s.id.indexOf('ST-'+yr+'-')===0;});
-  var max=0;
-  all.forEach(function(s){var p=s.id.split('-');var num=parseInt(p[2])||0;if(num>max)max=num;});
-  return 'ST-'+yr+'-'+String(max+1).padStart(3,'0');
+function cargarSTTec(){
+  var el = n('st-lista-tec');
+  el.innerHTML = '<div style="text-align:center;color:#aaa;padding:30px">Cargando...</div>';
+  sbGet('servicios_tecnicos','select=*&order=fecha.desc').then(function(rows){
+    stListaTec = Array.isArray(rows) ? rows : [];
+    renderSTTec(stListaTec);
+  }).catch(function(){
+    el.innerHTML = '<div style="text-align:center;color:#c62828;padding:20px">⚠️ Error de conexión.</div>';
+  });
 }
 
-function populateSTClientes(){
-  var sel=n('st-cliente');
-  if(!sel)return;
-  var cur=sel.value;
-  sel.innerHTML='<option value="">Seleccioná cliente...</option>';
-  CLIENTES.forEach(function(c){var o=document.createElement('option');o.value=c.n;o.textContent=c.n;sel.appendChild(o);});
-  if(cur)sel.value=cur;
-}
-
-function renderST(){
-  populateSTClientes();
-  var el=n('st-lista');
-  if(!serviciosTec.length){
-    el.innerHTML='<div style="text-align:center;color:#aaa;padding:30px;font-size:14px">Sin servicios técnicos registrados.<br>Presioná <b>+ Nuevo</b> para crear uno.</div>';
+function renderSTTec(rows){
+  var el = n('st-lista-tec');
+  // Separar pendientes/en curso de realizados
+  var activos = rows.filter(function(r){ return r.estado!=='Pagado'&&r.estado!=='Realizado'; });
+  var realizados = rows.filter(function(r){ return r.estado==='Realizado'||r.estado==='Pagado'; });
+  if(!rows.length){
+    el.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px"><div style="font-size:48px;margin-bottom:12px">🔧</div><div>Sin órdenes asignadas aún.<br>Josefina va a crear las órdenes desde App Madre.</div></div>';
     return;
   }
-  var sorted=[].concat(serviciosTec).sort(function(a,b){return(b.fecha||'').localeCompare(a.fecha||'');});
-  var html='';
-  sorted.slice(0,30).forEach(function(st){
-    var tecs=[];try{tecs=JSON.parse(st.tecnicos||'[]');}catch(e){}
-    html+='<div style="background:white;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,0.08);border-left:4px solid #1a237e">';
-    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
-    html+='<span style="font-weight:700;color:#1a237e;font-size:13px">'+st.id+'</span>';
-    html+='<span style="font-size:12px;color:#888">'+fDate(st.fecha)+'</span>';
+  var estColor={'Pendiente':'#FFF3E0','En curso':'#FFF9C4','Realizado':'#E8F5E9','Pagado':'#E3F2FD'};
+  var estText={'Pendiente':'#E65100','En curso':'#827717','Realizado':'#1B5E20','Pagado':'#1565C0'};
+  function cardHTML(st){
+    var tecs=[]; try{tecs=JSON.parse(st.tecnicos||'[]');}catch(e){}
+    var fD=st.fecha?st.fecha.split('-').reverse().join('/'):'—';
+    var est=st.estado||'Pendiente';
+    var done=(est==='Realizado'||est==='Pagado');
+    var html='<div style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);border-left:4px solid '+(done?'#4CAF50':'#00897B')+';cursor:'+(done?'default':'pointer')+'" '+(done?'':('onclick="abrirSTExec('+JSON.stringify(st).replace(/\/g,'\\').replace(/"/g,'&quot;')+')"'))+' >';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+    html+='<span style="font-size:11px;font-weight:700;color:#00695C">'+st.id+'</span>';
+    html+='<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;background:'+(estColor[est]||'#f5f5f5')+';color:'+(estText[est]||'#555')+'">'+est+'</span></div>';
+    html+='<div style="font-weight:700;font-size:15px;color:#1B5E20">'+st.cliente+'</div>';
+    if(st.ciudad) html+='<div style="font-size:12px;color:#555;margin-top:2px">📍 '+st.ciudad+(st.km?' · '+st.km+' km':'')+'</div>';
+    if(tecs.length) html+='<div style="font-size:12px;color:#555;margin-top:2px">👷 '+tecs.join(', ')+'</div>';
+    html+='<div style="font-size:12px;color:#888;margin-top:2px">📅 '+fD+'</div>';
+    if(st.problematica) html+='<div style="font-size:12px;color:#777;font-style:italic;margin-top:6px;padding:8px;background:#f9f9f9;border-radius:6px">'+st.problematica.substring(0,100)+(st.problematica.length>100?'…':'')+'</div>';
+    if(!done) html+='<div style="margin-top:8px;font-size:12px;color:#00695C;font-weight:700">Tocá para registrar el trabajo →</div>';
     html+='</div>';
-    html+='<div style="font-weight:700;font-size:14px;margin-bottom:3px">'+st.cliente+'</div>';
-    if(st.maquina)html+='<div style="font-size:12px;color:#555;margin-bottom:3px">🔧 '+st.maquina+'</div>';
-    html+='<div style="font-size:12px;color:#555;margin-bottom:8px">👷 '+tecs.join(', ')+'</div>';
-    html+='<div style="display:flex;gap:8px;flex-wrap:wrap">';
-    html+='<button class="btn-st-pdf" data-stid="'+st.id+'" style="background:#1a237e;color:white;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer">📄 Informe PDF</button>';
-    html+='<button class="btn-st-del" data-stid="'+st.id+'" style="background:#ffebee;color:#c62828;border:none;border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer">🗑</button>';
-    html+='</div></div>';
-  });
-  el.innerHTML=html;
-  el.querySelectorAll('.btn-st-pdf').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      var st=serviciosTec.find(function(x){return x.id===btn.dataset.stid;});
-      if(st)generarInformeST(st);
-    });
-  });
-  el.querySelectorAll('.btn-st-del').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      if(!confirm('¿Eliminar este servicio técnico?'))return;
-      serviciosTec=serviciosTec.filter(function(x){return x.id!==btn.dataset.stid;});
-      lsSet('bbt_st',JSON.stringify(serviciosTec));
-      renderST();toast('Eliminado');
-    });
-  });
-}
-
-n('btn-nuevo-st').addEventListener('click',function(){
-  n('st-form-wrap').style.display='block';
-  n('st-fecha').value=new Date().toISOString().slice(0,10);
-  stFotosData=[];n('st-fotos-preview').innerHTML='';
-  populateSTClientes();
-  window.scrollTo(0,0);
-});
-n('btn-st-cancelar').addEventListener('click',function(){n('st-form-wrap').style.display='none';});
-
-n('st-fotos').addEventListener('change',function(){
-  var files=Array.prototype.slice.call(this.files);
-  var libre=6-stFotosData.length;
-  files.slice(0,libre).forEach(function(f){
-    comprimirFoto(f,function(dataUrl){
-      stFotosData.push(dataUrl);
-      var img=document.createElement('img');
-      img.src=dataUrl;
-      img.style.cssText='width:72px;height:72px;object-fit:cover;border-radius:6px;border:2px solid #1a237e';
-      n('st-fotos-preview').appendChild(img);
-      if(stFotosData.length>=6)toast('Máximo 6 fotos alcanzado');
-    });
-  });
-});
-
-n('btn-st-guardar').addEventListener('click',function(){
-  var cliente=n('st-cliente').value;
-  if(!cliente){toast('Seleccioná un cliente');return;}
-  var problema=n('st-problema').value.trim();
-  if(!problema){toast('Describí la problemática');return;}
-  var tecs=[];
-  ['alcides','gabriel','marcelo'].forEach(function(k){var cb=n('st-tec-'+k);if(cb&&cb.checked)tecs.push(cb.value);});
-  var otros=n('st-tec-otros').value.trim();
-  if(otros)otros.split(',').forEach(function(t){var tt=t.trim();if(tt)tecs.push(tt);});
-  if(!tecs.length){toast('Seleccioná al menos un técnico');return;}
-  var st={
-    id:getNextSTId(),fecha:n('st-fecha').value,
-    hora_ingreso:n('st-ingreso').value,hora_egreso:n('st-egreso').value,
-    cliente:cliente,maquina:n('st-maquina').value.trim(),
-    problematica:problema,trabajos:n('st-trabajos').value.trim(),
-    piezas:n('st-piezas').value.trim(),tecnicos:JSON.stringify(tecs),
-    hotel:parseInt(n('st-hotel').value)||0,obs:n('st-obs').value.trim(),
-    fotos:JSON.stringify(stFotosData),estado:'Realizado'
-  };
-  serviciosTec.unshift(st);
-  lsSet('bbt_st',JSON.stringify(serviciosTec));
-  var stSB=Object.assign({},st,{fotos:'[]'}); // fotos solo local (peso)
-  sbInsert('servicios_tecnicos',stSB).catch(function(e){console.log('ST err',e);});
-  n('st-form-wrap').style.display='none';
-  ['st-maquina','st-problema','st-trabajos','st-piezas','st-ingreso','st-egreso','st-obs'].forEach(function(id){var el=n(id);if(el)el.value='';});
-  ['alcides','gabriel','marcelo'].forEach(function(k){var cb=n('st-tec-'+k);if(cb)cb.checked=false;});
-  n('st-tec-otros').value='';n('st-hotel').value='0';n('st-cliente').value='';
-  stFotosData=[];n('st-fotos-preview').innerHTML='';
-  renderST();
-  toast('✅ '+st.id+' guardado');
-  setTimeout(function(){generarInformeST(st);},500);
-});
-
-function generarInformeST(st){
-  var tecs=[];try{tecs=JSON.parse(st.tecnicos||'[]');}catch(e){}
-  var fotos=[];try{fotos=JSON.parse(st.fotos||'[]');}catch(e){}
-  var opts={day:'numeric',month:'long',year:'numeric'};
-  var fechaLarga=st.fecha?new Date(st.fecha+'T12:00:00').toLocaleDateString('es-AR',opts):'—';
-  var fechaEmision=new Date().toLocaleDateString('es-AR',opts);
-  var horario=(st.hora_ingreso||'—')+' a '+(st.hora_egreso||'—')+' hs';
-  var nTecs=tecs.length||1;
-  var hotel=st.hotel||0;
-  var dias=1;
-  if(st.hora_ingreso&&st.hora_egreso){var hI=parseInt((st.hora_ingreso||'08').split(':')[0]);var hE=parseInt((st.hora_egreso||'17').split(':')[0]);if(hE<hI)dias=2;}
-  var noches=Math.max(dias-1,0)+hotel;
-  var pD=9000,pM=9000,pA=20000,pC=20000,pJ=30000;
-  var vD=dias*nTecs*pD,vM=dias*nTecs*pM,vA=dias*nTecs*pA,vCe=noches*nTecs*pC;
-  var vT=vD+vM+vA+vCe,jT=dias*nTecs*pJ;
-  function fN(x){return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
-
-  var fotosSec='';
-  if(fotos.length){
-    fotosSec='<div class="page-break"></div><div class="page"><div class="page-hdr"><div class="page-hdr-title">Informe Técnico de Servicio</div><div class="page-hdr-code">'+st.id+' — '+st.cliente+'</div></div>';
-    fotosSec+='<div class="section-hdr">Registro Fotográfico</div>';
-    fotosSec+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px">';
-    fotos.forEach(function(f,i){fotosSec+='<div style="text-align:center"><img src="'+f+'" style="width:100%;border-radius:8px;border:1px solid #ddd"><div style="font-size:10px;color:#888;margin-top:5px">Fig. '+(i+1)+'</div></div>';});
-    fotosSec+='</div></div>';
+    return html;
   }
-
-  var viatSec='<div class="page-break"></div><div class="page"><div class="page-hdr"><div class="page-hdr-title">Informe Técnico de Servicio</div><div class="page-hdr-code">'+st.id+'</div></div>';
-  viatSec+='<div class="section-hdr">Viáticos y Jornales</div>';
-  viatSec+='<table class="dt"><thead><tr><th>Concepto</th><th style="text-align:right">Importe</th></tr></thead><tbody>';
-  viatSec+='<tr><td>Desayunos ('+dias+' día/s × '+nTecs+' personas)</td><td style="text-align:right">$'+fN(vD)+'</td></tr>';
-  viatSec+='<tr><td>Meriendas ('+dias+' día/s × '+nTecs+' personas)</td><td style="text-align:right">$'+fN(vM)+'</td></tr>';
-  viatSec+='<tr><td>Almuerzos ('+dias+' día/s × '+nTecs+' personas)</td><td style="text-align:right">$'+fN(vA)+'</td></tr>';
-  if(vCe>0)viatSec+='<tr><td>Cenas ('+noches+' noche/s × '+nTecs+' personas)</td><td style="text-align:right">$'+fN(vCe)+'</td></tr>';
-  viatSec+='<tr style="font-weight:700;background:#f0f4ff"><td>TOTAL VIÁTICOS</td><td style="text-align:right">$'+fN(vT)+'</td></tr>';
-  viatSec+='<tr><td>Jornales ('+dias+' día/s × '+nTecs+' personas)</td><td style="text-align:right">$'+fN(jT)+'</td></tr>';
-  viatSec+='</tbody></table>';
-  viatSec+='<div style="margin-top:20px;font-weight:700;color:#1a237e;font-size:13px;margin-bottom:12px">Recibos de jornal individuales:</div>';
-  tecs.forEach(function(tec){
-    var jorInd=dias*pJ;
-    viatSec+='<div style="border:1px solid #ddd;border-radius:8px;padding:14px;margin-bottom:12px">';
-    viatSec+='<div style="font-weight:700;font-size:14px;margin-bottom:4px">'+tec+'</div>';
-    viatSec+='<div style="font-size:13px;color:#444;margin-bottom:20px">'+dias+' jornal/es × $'+fN(pJ)+' = <b style="color:#1a237e">$'+fN(jorInd)+'</b></div>';
-    viatSec+='<div style="border-top:1px solid #ddd;padding-top:10px;display:flex;justify-content:space-between;font-size:11px;color:#888">';
-    viatSec+='<span>Firma: ____________________________</span><span>Autorizado: ____________________________</span></div></div>';
-  });
-  viatSec+='</div>';
-
-  var css='*{margin:0;padding:0;box-sizing:border-box}'
-    +'body{font-family:Arial,sans-serif;font-size:13px;color:#222;background:white}'
-    +'@media print{.no-print{display:none!important}.page-break{page-break-before:always}@page{margin:16mm}}'
-    +'.cover{background:#1a237e;color:white;min-height:100vh;display:flex;flex-direction:column;justify-content:space-between;padding:48px}'
-    +'.page{padding:36px 48px;max-width:800px;margin:0 auto}'
-    +'.page-hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a237e;padding-bottom:10px;margin-bottom:22px}'
-    +'.page-hdr-title{font-size:12px;font-weight:700;color:#1a237e;letter-spacing:1px;text-transform:uppercase}'
-    +'.page-hdr-code{font-size:11px;color:#999}'
-    +'.section-hdr{background:#1a237e;color:white;padding:7px 14px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px;margin-top:18px}'
-    +'.dr{display:flex;border-bottom:1px solid #eee;padding:8px 0}'
-    +'.dl{color:#777;width:150px;flex-shrink:0;font-size:11px;text-transform:uppercase;letter-spacing:.3px}'
-    +'.dv{font-weight:600;flex:1}'
-    +'.tb{background:#f9f9f9;border-radius:8px;padding:13px;font-size:13px;line-height:1.65;white-space:pre-wrap;margin-bottom:10px}'
-    +'.dt{width:100%;border-collapse:collapse;font-size:13px}'
-    +'.dt th{background:#1a237e;color:white;padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase}'
-    +'.dt td{padding:8px 12px;border-bottom:1px solid #eee}'
-    +'.footer{background:#f5f5f5;border-top:2px solid #1a237e;padding:18px 48px;font-size:11px;color:#666;display:flex;justify-content:space-between;align-items:center;margin-top:36px}'
-    +'.cls{position:fixed;top:14px;right:14px;background:#c62828;color:white;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;font-weight:700;cursor:pointer;z-index:999;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.3)}';
-
-  var doc='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-    +'<title>'+st.id+' — Informe Técnico</title><style>'+css+'</style></head><body>'
-    +'<button class="cls no-print" onclick="window.close()">×</button>'
-    // PORTADA
-    +'<div class="cover">'
-    +'<div>'
-    +'<div style="font-size:12px;letter-spacing:3px;opacity:.7;margin-bottom:10px;text-transform:uppercase">Bag Bio / Control Bio</div>'
-    +'<div style="font-size:38px;font-weight:900;line-height:1.1;margin-bottom:8px">INFORME<br>TÉCNICO</div>'
-    +'<div style="font-size:16px;opacity:.75;margin-bottom:36px">Servicio de Mantenimiento y Reparación</div>'
-    +'<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:16px 20px;display:inline-block;margin-bottom:20px">'
-    +'<div style="font-size:24px;font-weight:900;letter-spacing:2px">'+st.id+'</div>'
-    +'<div style="font-size:11px;opacity:.7;margin-top:4px">Código de trazabilidad</div></div>'
-    +'<div style="font-size:15px;margin-top:8px"><b>CLIENTE:</b> '+st.cliente+'</div>'
-    +(st.maquina?'<div style="font-size:14px;opacity:.85;margin-top:5px"><b>EQUIPO:</b> '+st.maquina+'</div>':'')
-    +'<div style="font-size:14px;opacity:.85;margin-top:5px"><b>FECHA:</b> '+fechaLarga+'</div>'
-    +'</div>'
-    +'<div style="border-top:1px solid rgba(255,255,255,.2);padding-top:18px;font-size:12px;opacity:.65">Documento de trazabilidad técnica — Bag Bio Servicios Técnicos · Deán Funes, Córdoba, Argentina</div>'
-    +'</div>'
-    // PÁGINA 2
-    +'<div class="page">'
-    +'<div class="page-hdr"><div class="page-hdr-title">Informe Técnico de Servicio</div><div class="page-hdr-code">'+st.id+' — '+st.cliente+'</div></div>'
-    +'<div class="section-hdr">1. Datos del Servicio</div>'
-    +'<div class="dr"><span class="dl">Cliente</span><span class="dv">'+st.cliente+'</span></div>'
-    +(st.maquina?'<div class="dr"><span class="dl">Máquina / Equipo</span><span class="dv">'+st.maquina+'</span></div>':'')
-    +'<div class="dr"><span class="dl">Fecha</span><span class="dv">'+fechaLarga+'</span></div>'
-    +'<div class="dr"><span class="dl">Horario</span><span class="dv">'+horario+'</span></div>'
-    +'<div class="dr"><span class="dl">Técnicos</span><span class="dv">'+tecs.join(' · ')+'</span></div>'
-    +(hotel>0?'<div class="dr"><span class="dl">Hotel</span><span class="dv">'+hotel+' noche/s</span></div>':'')
-    +'<div class="section-hdr" style="margin-top:22px">2. Problemática Reportada</div>'
-    +'<div class="tb">'+(st.problematica||'—')+'</div>'
-    +'<div class="section-hdr">3. Trabajos Realizados</div>'
-    +'<div class="tb">'+(st.trabajos||'Sin detalle registrado.')+'</div>'
-    +(st.piezas?'<div class="section-hdr">4. Piezas / Materiales Utilizados</div><div class="tb">'+st.piezas+'</div>':'')
-    +(st.obs?'<div class="section-hdr">Observaciones</div><div class="tb">'+st.obs+'</div>':'')
-    +'<div class="footer"><div><b>Bag Bio / Control Bio</b><br>Maipú y Ruta 16 — Parque Industrial Norte, Deán Funes, Córdoba</div><div style="text-align:right">'+st.id+'<br>Emitido el '+fechaEmision+'</div></div>'
-    +'</div>'
-    +fotosSec
-    +viatSec
-    +'</body></html>';
-
-  var w=window.open('','_blank');
-  if(w){w.document.write(doc);w.document.close();setTimeout(function(){w.print();},700);}
-  else toast('Habilitá las ventanas emergentes');
+  var html='';
+  if(activos.length){
+    html+='<div style="font-size:11px;font-weight:700;color:#E65100;text-transform:uppercase;margin-bottom:8px">⏳ Pendientes ('+activos.length+')</div>';
+    activos.forEach(function(st){ html+=cardHTML(st); });
+  }
+  if(realizados.length){
+    html+='<div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;margin:16px 0 8px">✅ Realizados ('+realizados.length+')</div>';
+    realizados.forEach(function(st){ html+=cardHTML(st); });
+  }
+  el.innerHTML=html;
 }
 
-// Init
-try{
-  renderServicios();
-}catch(e){
-  var b=n('err-banner');
-  if(b){b.style.display='block';b.textContent='Init error: '+e.message+' :: '+e.stack;}}
-</script>
-</body>
-</html>
+function abrirSTExec(st){
+  var tecs=[]; try{tecs=JSON.parse(st.tecnicos||'[]');}catch(e){}
+  var fD=st.fecha?st.fecha.split('-').reverse().join('/'):'—';
+  n('st-exec-id').textContent=st.id;
+  n('st-exec-cliente').textContent=st.cliente;
+  var info='';
+  if(st.ciudad) info+='📍 '+st.ciudad+(st.km?' ('+st.km+' km)':'')+'<br>';
+  if(tecs.length) info+='👷 '+tecs.join(', ')+'<br>';
+  info+='📅 '+fD;
+  if(st.hotel) info+='  · 🏨 '+st.hotel+' noche/s';
+  if(st.maquina) info+='<br>🔧 '+st.maquina;
+  if(st.problematica) info+='<br><br><b>Trabajo solicitado:</b><br>'+st.problematica;
+  n('st-exec-info').innerHTML=info;
+  n('st-exec-current-id').value=st.id;
+  // Pre-cargar si ya tiene datos
+  n('st-exec-hi').value=st.hora_ingreso||'';
+  n('st-exec-he').value=st.hora_egreso||'';
+  n('st-exec-trabajos').value=st.trabajos||'';
+  n('st-exec-piezas').value=st.piezas||'';
+  n('st-exec-obs').value=st.obs||'';
+  stExecFotos=[];
+  n('st-exec-fotos-prev').innerHTML='';
+  n('st-exec-panel').style.display='block';
+  document.body.style.overflow='hidden';
+}
+
+n('st-exec-back').addEventListener('click',function(){
+  n('st-exec-panel').style.display='none';
+  document.body.style.overflow='';
+});
+
+n('st-exec-fotos').addEventListener('change',function(){
+  var files=Array.from(this.files);
+  files.forEach(function(file){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      stExecFotos.push(e.target.result);
+      var img=document.createElement('img');
+      img.src=e.target.result;
+      img.style.cssText='width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid #e0e0e0';
+      n('st-exec-fotos-prev').appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+});
+
+function guardarSTExec(estado){
+  var id=n('st-exec-current-id').value;
+  if(!id){toast('⚠️ Error: no hay orden seleccionada');return;}
+  var btn=estado==='Realizado'?n('btn-st-exec-guardar'):n('btn-st-exec-parcial');
+  btn.disabled=true; btn.textContent='Guardando...';
+  var payload={
+    id:id,
+    hora_ingreso:n('st-exec-hi').value||'',
+    hora_egreso:n('st-exec-he').value||'',
+    trabajos:n('st-exec-trabajos').value.trim(),
+    piezas:n('st-exec-piezas').value.trim(),
+    obs:n('st-exec-obs').value.trim(),
+    estado:estado,
+    fotos:JSON.stringify(stExecFotos)
+  };
+  sbUpsert('servicios_tecnicos',payload).then(function(){
+    toast(estado==='Realizado'?'✅ Orden marcada como Realizado':'💾 Avance guardado');
+    n('st-exec-panel').style.display='none';
+    document.body.style.overflow='';
+    cargarSTTec();
+  }).catch(function(e){
+    toast('⚠️ Error: '+e.message);
+  }).finally(function(){
+    btn.disabled=false;
+    btn.textContent=estado==='Realizado'?'✅ Marcar como Realizado':'💾 Guardar avance (En curso)';
+  });
+}
+
+n('btn-st-exec-guardar').addEventListener('click',function(){ guardarSTExec('Realizado'); });
+n('btn-st-exec-parcial').addEventListener('click',function(){ guardarSTExec('En curso'); });
+n('btn-st-refresh').addEventListener('click',cargarSTTec);
+
+// Cargar al abrir pestaña ST
+>
