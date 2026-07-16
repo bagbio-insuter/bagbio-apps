@@ -1544,7 +1544,7 @@ function renderSTMadre(rows){
   var estadoColor = {'Pendiente':'#FFF3E0','En curso':'#FFF9C4','Realizado':'#E8F5E9','Pagado':'#E3F2FD'};
   var estadoText = {'Pendiente':'#E65100','En curso':'#827717','Realizado':'#1B5E20','Pagado':'#1565C0'};
   var html = '';
-  rows.forEach(function(st){
+  rows.forEach(function(st, idx){
     var tecs = []; try{ tecs = JSON.parse(st.tecnicos||'[]'); }catch(e){}
     var nTec = Math.max(tecs.length, 1);
     var fD = st.fecha ? st.fecha.split('-').reverse().join('/') : '—';
@@ -1577,7 +1577,7 @@ function renderSTMadre(rows){
     html += '<div><div style="color:#aaa;font-size:10px;text-transform:uppercase">Comidas</div><div style="font-weight:700">$'+fNum(comidas)+'</div></div>';
     html += '<div style="margin-left:auto"><div style="color:#1B5E20;font-size:10px;text-transform:uppercase;font-weight:700">Total</div><div style="font-weight:800;font-size:15px;color:#1B5E20">$'+fNum(vTotal)+'</div></div>';
     html += '</div>';
-    html += '<div class="svc-actions"><button onclick="genComprobanteSTMadre('+JSON.stringify(st).replace(/\/g,'\\').replace(/'/g,"\'").replace(/"/g,'&quot;')+','+vTotal+')" style="background:#1B5E20;color:white;border:none;border-radius:8px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer">📄 Comprobante</button></div>';
+    html += '<div class="svc-actions"><button onclick="genComprobanteSTMadre('+idx+','+vTotal+')" style="background:#1B5E20;color:white;border:none;border-radius:8px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer">📄 Comprobante</button></div>';
     html += '</div>';
   });
   el.innerHTML = html;
@@ -1630,7 +1630,7 @@ n('btn-guardar-st').addEventListener('click', function(){
       trabajos: '', piezas: '', fotos: '[]',
       hora_ingreso: '', hora_egreso: ''
     };
-    return sbInsert('servicios_tecnicos', st).then(function(){
+    return sbUpsert('servicios_tecnicos', st).then(function(){
       toast('✅ Orden '+newId+' creada');
       n('modal-nueva-st').classList.remove('open');
       // Limpiar form
@@ -1640,12 +1640,12 @@ n('btn-guardar-st').addEventListener('click', function(){
     });
   }).catch(function(e){
     toast('⚠️ Error al guardar: '+e.message);
-  }).finally(function(){
     btn.disabled = false; btn.textContent = '💾 Crear Orden de Servicio Técnico';
   });
 });
 
-function genComprobanteSTMadre(st, total){
+function genComprobanteSTMadre(idx, total){
+  var st = stData[idx] || {};
   var tecs = []; try{ tecs = JSON.parse(st.tecnicos||'[]'); }catch(e){}
   var fD = st.fecha ? st.fecha.split('-').reverse().join('/') : '—';
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+st.id+'</title><style>';
