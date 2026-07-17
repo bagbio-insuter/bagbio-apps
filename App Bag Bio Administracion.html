@@ -291,6 +291,35 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .btn-recibo{width:100%;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;background:#E65100;color:white;margin-top:10px;transition:opacity .15s;}
 .btn-recibo:hover{opacity:.88;}
 
+/* ===== FIRMA MODAL ===== */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:9999;}
+.modal-bx{background:white;border-radius:18px;padding:24px 28px;width:min(520px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.modal-ttl{font-size:17px;font-weight:800;color:var(--az);margin-bottom:4px;}
+.modal-sub{font-size:12px;color:var(--text2);margin-bottom:12px;}
+.recibo-preview{background:#f8f9ff;border-radius:10px;padding:14px 16px;margin-bottom:14px;border:1px solid #e8eaf6;}
+.cv-wrap{border:2px dashed #c5cae9;border-radius:10px;background:#fafafa;overflow:hidden;position:relative;margin-bottom:12px;}
+#sig-cv{display:block;width:100%;height:150px;cursor:crosshair;}
+#sig-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:#bbb;pointer-events:none;}
+.sig-btns{display:flex;gap:8px;}
+.sig-btns button{flex:1;padding:10px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;}
+#sig-clear{background:#f5f5f5;color:#666;}
+#sig-cancel{background:#f5f5f5;color:#666;}
+#sig-ok{background:var(--az);color:white;}
+
+/* ===== DÍAS EXTRA POR SERVICIO ===== */
+.svc-row-dias{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.dias-cnt{font-size:13px;font-weight:800;color:var(--az);min-width:28px;text-align:center;}
+.dias-btn{width:26px;height:26px;border:none;border-radius:6px;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+.dias-btn.plus{background:var(--az);color:white;}
+.dias-btn.minus{background:#f0f2ff;color:var(--az);}
+
+.di-edit{border:2px solid var(--az)!important;background:#e8eaf6!important;}
+.di-edit .di-l{color:var(--az)!important;}
+.edit-tag{font-size:8px;font-weight:800;background:var(--az);color:white;padding:1px 5px;border-radius:4px;margin-left:4px;vertical-align:middle;text-transform:uppercase;}
+.di-input::-webkit-inner-spin-button,.di-input::-webkit-outer-spin-button{-webkit-appearance:none;}
+.btn-guardar-cant{width:100%;padding:10px;margin-top:10px;background:linear-gradient(135deg,var(--az),var(--azm));color:white;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;transition:opacity .15s;}
+.btn-guardar-cant:hover{opacity:.88;}
+
 </style>
 </head>
 <body>
@@ -455,6 +484,7 @@ var apiUrl=lsGet('bba_url','');
 var filtro='Todos';
 var tecnicos=['Alcides Fabbio','Gabriel Rodriguez'];
 var liqExtra={}; // días extra por técnico en liquidación
+var liqExtraSvc={}; // días extra por servicio individual
 var servicios=JSON.parse(lsGet('bba_s','[]'));var visibles=[];
 var gastos=JSON.parse(lsGet('bba_g','{}'));
 var sbGastos=[];
@@ -602,11 +632,16 @@ function renderSvc(){
     html+='</div><span class="chev">&#8964;</span></div>';
     html+='<div class="svc-detail">';
     html+='<div class="det-sec"><div class="det-tit">Operativo</div><div class="dg">';
-    html+='<div class="di"><div class="di-l">Big Bags</div><div class="di-v">'+e.bb+'</div></div>';
-    html+='<div class="di"><div class="di-l">Toneladas</div><div class="di-v">'+e.tn+' Tn</div></div>';
+    html+='<div class="di di-edit"><div class="di-l">Big Bags <span class="edit-tag">editable</span></div>';
+    html+='<input class="di-input" type="number" min="1" data-edit-bb="'+s.id+'" value="'+e.bb+'" style="width:80px;font-size:16px;font-weight:800;border:none;background:transparent;color:var(--az);outline:none;"></div>';
+    html+='<div class="di di-edit"><div class="di-l">Kg/envase <span class="edit-tag">editable</span></div>';
+    html+='<input class="di-input" type="number" min="1" data-edit-kg="'+s.id+'" value="'+(s.kg||1200)+'" style="width:80px;font-size:16px;font-weight:800;border:none;background:transparent;color:var(--az);outline:none;"></div>';
+    html+='<div class="di"><div class="di-l">Toneladas</div><div class="di-v" id="tn-'+s.id+'">'+e.tn+' Tn</div></div>';
     html+='<div class="di"><div class="di-l">Duracion</div><div class="di-v">'+e.d+' dia/s</div></div>';
     html+='<div class="di"><div class="di-l">Distancia</div><div class="di-v">'+e.km+' km</div></div>';
-    html+='</div></div>';
+    html+='</div>';
+    html+='<button class="btn-guardar-cant" data-svc-id="'+s.id+'" data-idx="'+idx+'">💾 Guardar cantidades</button>';
+    html+='</div>';
     html+='<div class="det-sec"><div class="det-tit">💰 Gastos del servicio (cargados por técnicos)</div>';
     var svcGastos=sbGastos.filter(function(g){return String(g.servicio_id)===String(s.id);});
     if(svcGastos.length===0){
@@ -665,7 +700,7 @@ function renderSvc(){
     html+='<button class="btn-stella" data-stella="'+s.id+'" style="flex:1;background:#25D366;color:white;border:none;border-radius:8px;padding:8px 10px;font-size:12px;font-weight:700;cursor:pointer">💬 Avisar Stella</button>';
     html+='</div>';
     html+='<div style="padding:0 16px 14px;display:flex;gap:8px">';
-    html+='<button class="btn-gabriel" data-gabriel="'+s.id+'" style="flex:1;background:#E65100;color:white;border:none;border-radius:8px;padding:10px 10px;font-size:12px;font-weight:700;cursor:pointer">📋 Liquidación Gabriel</button>';
+    html+='<button class="btn-gabriel" data-gabriel="'+s.id+'" style="flex:1;background:#E65100;color:white;border:none;border-radius:8px;padding:10px 10px;font-size:12px;font-weight:700;cursor:pointer">📋 Detalle Gabriel</button>';
     html+='</div>';
     html+='</div></div>';
   });
@@ -828,6 +863,28 @@ function renderSvc(){
       renderStats();renderSvc();toast('✅ Estado actualizado');
     });
   });
+  el.querySelectorAll('.btn-guardar-cant').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var svcId=btn.dataset.svcId;
+      var idx=parseInt(btn.dataset.idx);
+      var s=servicios[idx];
+      if(!s)return;
+      var bbInput=el.querySelector('[data-edit-bb="'+svcId+'"]');
+      var kgInput=el.querySelector('[data-edit-kg="'+svcId+'"]');
+      var newBB=parseInt(bbInput&&bbInput.value)||s.bb;
+      var newKg=parseInt(kgInput&&kgInput.value)||s.kg||1200;
+      s.bb=newBB;
+      s.kg=newKg;
+      lsSet('bba_s',JSON.stringify(servicios));
+      // Sync to Supabase
+      sbPatch('servicios','id',svcId,{bb:newBB,kg:newKg});
+      // Update toneladas display live
+      var tnEl=document.getElementById('tn-'+svcId);
+      if(tnEl)tnEl.textContent=((newBB*newKg)/1000).toFixed(1)+' Tn';
+      renderStats();
+      toast('✅ Cantidades actualizadas: '+newBB+' BB · '+((newBB*newKg)/1000).toFixed(1)+' Tn');
+    });
+  });
   // Post-procesado: mover cards de pasados a sección oculta
   if(pasados.length){
     var pasadosIds=pasados.map(function(s){return s.id;});
@@ -873,15 +930,22 @@ function renderLiq(){
     var rows='';
     svcMes.forEach(function(s){
       var e=calcEcon(s);
-      var jT=e.d*(parseFloat(cfg.jornal)||30000);
-      // Gastos reales del técnico (mitad del total del servicio ya que son 2 técnicos)
-      totalJ+=jT;totalD+=e.d;
+      var jornal=parseFloat(cfg.jornal)||30000;
+      var svcExtra=liqExtraSvc[s.id]||0;
+      var dSvc=e.d+svcExtra;
+      var jT=dSvc*jornal;
+      totalJ+=jT;totalD+=dSvc;
       rows+='<div class="svc-row">';
       rows+='<div class="svc-row-ico">🏭</div>';
       rows+='<div class="svc-row-info"><div class="svc-row-name">'+s.cliente+'</div>';
-      rows+='<div class="svc-row-det">'+fDate(s.fecha)+' &middot; '+s.producto+' &middot; '+e.d+' dia/s</div></div>';
+      rows+='<div class="svc-row-det">'+fDate(s.fecha)+' &middot; '+s.producto+'</div></div>';
+      rows+='<div class="svc-row-dias">';
+      rows+='<button class="dias-btn minus" onclick="addDiaSvc(''+s.id+'',-1)">−</button>';
+      rows+='<span class="dias-cnt">'+dSvc+'d</span>';
+      rows+='<button class="dias-btn plus" onclick="addDiaSvc(''+s.id+'',1)">+</button>';
+      rows+='</div>';
       rows+='<div class="svc-row-val"><div class="svc-row-total">$'+fNum(jT)+'</div>';
-      rows+='<div class="svc-row-break">Jornal: $'+fNum(parseFloat(cfg.jornal)||30000)+'</div></div></div>';
+      rows+='<div class="svc-row-break">$'+fNum(jornal)+'/día</div></div></div>';
     });
     // Sumar días extra manuales
     var jornal=parseFloat(cfg.jornal)||30000;
@@ -905,6 +969,10 @@ function renderLiq(){
     html+='</div></div>';
   });
   n('list-liq').innerHTML=html;
+}
+function addDiaSvc(svcId, delta){
+  liqExtraSvc[svcId]=Math.max(0,(liqExtraSvc[svcId]||0)+(delta||1));
+  renderLiq();
 }
 function addDiaExtra(tecKey,tecNombre,delta){
   var tec=tecNombre||tecKey.replace(/_/g,' ');
@@ -1070,10 +1138,14 @@ function genRecibo(tec,mes,anio){
   var extraD=liqExtra[tec]||0;
   var filas='';var totalDias=0,totalPesos=0;
   svcMes.forEach(function(s){
-    var e=calcEcon(s);var jT=e.d*jornal;
-    totalDias+=e.d;totalPesos+=jT;
+    var e=calcEcon(s);
+    var svcExtra=liqExtraSvc[s.id]||0;
+    var dSvc=e.d+svcExtra;
+    var jT=dSvc*jornal;
+    totalDias+=dSvc;totalPesos+=jT;
     filas+='<tr><td>'+fDate(s.fecha)+'</td><td>'+s.cliente+'</td><td>'+s.producto+'</td>'
-      +'<td style="text-align:center">'+e.d+'</td><td style="text-align:right">$'+fNum(jornal)+'</td>'
+      +'<td style="text-align:center">'+dSvc+(svcExtra>0?' <small style=color:#E65100>(+'+svcExtra+')</small>':'')+'</td>'
+      +'<td style="text-align:right">$'+fNum(jornal)+'</td>'
       +'<td style="text-align:right">$'+fNum(jT)+'</td></tr>';
   });
   // Días extra manuales
