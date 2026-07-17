@@ -940,9 +940,9 @@ function renderLiq(){
       rows+='<div class="svc-row-info"><div class="svc-row-name">'+s.cliente+'</div>';
       rows+='<div class="svc-row-det">'+fDate(s.fecha)+' &middot; '+s.producto+'</div></div>';
       rows+='<div class="svc-row-dias">';
-      rows+='<button class="dias-btn minus" onclick="addDiaSvc(''+s.id+'',-1)">−</button>';
+      rows+='<button class="dias-btn minus" onclick="addDiaSvc(\''+s.id+'\',-1)">−</button>';
       rows+='<span class="dias-cnt">'+dSvc+'d</span>';
-      rows+='<button class="dias-btn plus" onclick="addDiaSvc(''+s.id+'',1)">+</button>';
+      rows+='<button class="dias-btn plus" onclick="addDiaSvc(\''+s.id+'\',1)">+</button>';
       rows+='</div>';
       rows+='<div class="svc-row-val"><div class="svc-row-total">$'+fNum(jT)+'</div>';
       rows+='<div class="svc-row-break">$'+fNum(jornal)+'/día</div></div></div>';
