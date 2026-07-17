@@ -205,26 +205,34 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .alert-box{background:#FFF8E1;border:1px solid var(--am);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px;}
 
 /* ===== CALENDARIO ===== */
-.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.cal-mes{font-size:18px;font-weight:800;color:var(--vd);}
-.cal-arr{background:none;border:1.5px solid #ddd;border-radius:8px;padding:6px 12px;font-size:16px;cursor:pointer;}
-.cal-grid{display:flex;flex-direction:column;gap:0;}
-.cal-dias-hdr{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px;}
-.cal-dias-hdr span{text-align:center;font-size:10px;font-weight:800;color:var(--text2);padding:5px 0;text-transform:uppercase;letter-spacing:.3px;}
-.cal-dias{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
-.cal-dia{min-height:60px;background:white;border-radius:8px;padding:6px 4px;font-size:12px;border:1px solid #eee;display:flex;flex-direction:column;align-items:center;}
-.cal-dia.hoy{border:2px solid var(--vm);box-shadow:0 0 0 2px rgba(46,125,50,.12);}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding:16px 20px;background:white;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);}
+.cal-mes{font-size:20px;font-weight:900;color:var(--vd);letter-spacing:-.3px;}
+.cal-arr{background:var(--vl);border:none;border-radius:10px;padding:8px 16px;font-size:18px;font-weight:700;cursor:pointer;color:var(--vd);transition:background .15s;}
+.cal-arr:hover{background:var(--vm);color:white;}
+.cal-grid{display:flex;flex-direction:column;gap:0;background:white;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);overflow:hidden;padding:16px;}
+.cal-dias-hdr{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:8px;}
+.cal-dias-hdr span{text-align:center;font-size:11px;font-weight:800;color:var(--text2);padding:6px 0;text-transform:uppercase;letter-spacing:.5px;}
+.cal-dias{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal-dia{min-height:72px;background:#f8faf8;border-radius:10px;padding:8px 6px;font-size:12px;border:2px solid transparent;display:flex;flex-direction:column;align-items:center;transition:transform .1s;}
+.cal-dia:hover:not(.vacio){transform:scale(1.04);}
+.cal-dia.hoy{border-color:var(--vm);background:var(--vl);}
 .cal-dia.vacio{background:transparent;border:none;}
-.cal-dia.libre{background:white;}
-.cal-dia.pend{background:#FFF3E0;border-color:var(--or);}
-.cal-dia.conf{background:var(--azl);border-color:var(--az);}
-.cal-dia.curs{background:var(--aml);border-color:#827717;}
-.cal-dia.comp{background:var(--vl);border-color:var(--vm);}
-.dn{font-weight:700;font-size:13px;display:block;margin-bottom:3px;}
+.cal-dia.libre{background:#f8faf8;}
+.cal-dia.pend{background:#FFF3E0;border-color:#FFCC80;}
+.cal-dia.conf{background:#E3F2FD;border-color:#90CAF9;}
+.cal-dia.curs{background:#FFFDE7;border-color:#F9A825;}
+.cal-dia.comp{background:#E8F5E9;border-color:#A5D6A7;}
+.dn{font-weight:800;font-size:14px;display:block;margin-bottom:4px;color:var(--text);}
 .cal-dia.hoy .dn{color:var(--vd);}
-.cal-cli{font-size:8px;font-weight:800;text-align:center;line-height:1.2;max-width:100%;overflow:hidden;word-break:break-word;}
-#syncLbl{display:none!important;}
-
+.cal-dia.vacio .dn{display:none;}
+.cal-chip{font-size:9px;font-weight:900;text-align:center;line-height:1.2;padding:2px 5px;border-radius:6px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;}
+.cal-dia.pend .cal-chip{background:var(--or);color:white;}
+.cal-dia.conf .cal-chip{background:var(--az);color:white;}
+.cal-dia.curs .cal-chip{background:#F9A825;color:white;}
+.cal-dia.comp .cal-chip{background:var(--vm);color:white;}
+.cal-leyenda{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;padding:12px 16px;background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.cal-ley-item{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--text2);}
+.cal-ley-dot{width:12px;height:12px;border-radius:4px;flex-shrink:0;}
 .tec-btn{padding:8px 14px;border:2px solid #ddd;border-radius:8px;background:white;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;}
 .tec-btn.sel{background:var(--vm);color:white;border-color:var(--vm);}
 
@@ -1379,7 +1387,7 @@ function renderCalendario(){
     var esHoy=(d===hd&&calMes===hm&&calAnio===ha);
     html+='<div class="cal-dia '+cls+(esHoy?' hoy':'')+'">';
     html+='<span class="dn">'+d+'</span>';
-    if(sv)html+='<span class="cal-cli">'+sv.cli+'</span>';
+    if(sv)html+='<span class="cal-chip">'+sv.cli+'</span>';
     html+='</div>';
   }
   n('cal-dias').innerHTML=html;
