@@ -1523,7 +1523,7 @@ function genOrdenStella(s, d){
         '<div class="info-cell"><div class="lbl">Tipo</div><div class="val">'+tipoLbl+'</div></div>'+
         '<div class="info-cell"><div class="lbl">Producto</div><div class="val">'+(s.producto||'—')+'</div></div>'+
         '<div class="info-cell"><div class="lbl">Big Bags</div><div class="val">'+d.e.bb+' BB ('+d.e.tn+' Tn)</div></div>'+
-        '<div class="info-cell"><div class="lbl">Duración</div><div class="val">'+d.dTot+' día/s'+((d.hotelExtra>0)?' · '+d.hotelExtra+' noche/s extra':'')+'</div></div>'+
+        '<div class="info-cell"><div class="lbl">Duración</div><div class="val">'+(d.diasEx>0?(d.e.d+' base + '+d.diasEx+' extra → '+d.dTot+' total'):d.dTot+' día/s')+((d.hotelExtra>0)?' · '+d.hotelExtra+' noche/s extra hotel':'')+'</div></div>'+
       '</div>'+
     '</div>'+
 
@@ -1632,7 +1632,7 @@ function genOrdenGabriel(s, d){
       '<div class="info-cell"><div class="lbl">Producto</div><div class="val">'+s.producto+'</div></div>'+
       '<div class="info-cell"><div class="lbl">Fecha</div><div class="val">'+fDate2(s.fecha)+'</div></div>'+
       '<div class="info-cell"><div class="lbl">Big Bags</div><div class="val">'+e.bb+' BB · '+e.tn+' Tn</div></div>'+
-      '<div class="info-cell"><div class="lbl">Días de servicio</div><div class="val">'+d.dTot+' día/s'+(d.diasEx>0?' (+'+d.diasEx+' extra)':'')+' </div></div>'+
+      '<div class="info-cell"><div class="lbl">Días de servicio</div><div class=\"val\">'+(d.diasEx>0?(e.d+' base + '+d.diasEx+' extra → '+d.dTot+' total'):(d.dTot+' día/s'))+'</div></div>'+
       '<div class="info-cell"><div class="lbl">Distancia</div><div class="val">'+d.km+' km ida</div></div>'+
     '</div>'+
 
