@@ -45,6 +45,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .svc-card{background:white;border-radius:12px;padding:13px;margin-bottom:9px;box-shadow:0 2px 10px rgba(0,0,0,0.08);border-left:4px solid var(--vm);cursor:pointer;}
 .svc-card.selected{border-left-color:#2E7D32;background:#F1F8E9;}
 .svc-card.curso{border-left-color:var(--am);}
+.svc-card.comp{border-left-color:#9E9E9E;opacity:0.75;cursor:default;}
+.b-comp{background:#F5F5F5;color:#616161;}
 .svc-name{font-size:15px;font-weight:700;color:#BF360C;}
 .svc-det{font-size:12px;color:var(--text2);margin-top:3px;}
 .badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;}
@@ -89,6 +91,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 
 <!-- TAB: SERVICIOS -->
 <div class="screen active" id="sc-servicios">
+  <div style="display:flex;gap:8px;padding:12px 14px 4px">
+    <button id="btn-view-activos" onclick="setSvcView('activos')" style="flex:1;padding:9px 0;border-radius:20px;border:2px solid #E65100;background:#E65100;color:white;font-weight:700;font-size:13px;cursor:pointer">⚡ Activos</button>
+    <button id="btn-view-historial" onclick="setSvcView('historial')" style="flex:1;padding:9px 0;border-radius:20px;border:2px solid #E65100;background:white;color:#E65100;font-weight:700;font-size:13px;cursor:pointer">📂 Historial</button>
+  </div>
   <div id="svc-selected-bar" style="display:none" class="alert-box"></div>
   <div id="list-servicios"></div>
 </div>
@@ -327,6 +333,14 @@ function fNum(n){return (n||0).toLocaleString('es-AR');}
 
 // Data
 var servicios=JSON.parse(lsGet('bbt_s','[]'));
+var svcView='activos';
+function setSvcView(v){
+  svcView=v;
+  var bA=n('btn-view-activos'),bH=n('btn-view-historial');
+  if(v==='activos'){bA.style.background='#E65100';bA.style.color='white';bH.style.background='white';bH.style.color='#E65100';}
+  else{bH.style.background='#E65100';bH.style.color='white';bA.style.background='white';bA.style.color='#E65100';}
+  renderServicios();
+}
 var CLIENTES=JSON.parse(lsGet('bbt_cli','[]'));
 var selectedSvcId=lsGet('bbt_sel','');
 var envasesFallados=JSON.parse(lsGet('bbt_env','[]'));
@@ -446,21 +460,27 @@ function syncData(){
 // ===== RENDER SERVICIOS =====
 function renderServicios(){
   var el=n('list-servicios');
-  var activos=servicios.filter(function(s){return s.estado==='Confirmado'||s.estado==='En curso';});
-  if(activos.length===0){
-    el.innerHTML='<div class="no-svc"><div class="ico">📋</div><p>No hay servicios activos.<br>Presioná <b>Sincronizar</b> para actualizar.</p></div>';
+  var lista;
+  if(svcView==='historial'){
+    lista=servicios.filter(function(s){return s.estado==='Completado'||s.estado==='Eliminado';});
+    lista.sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+  } else {
+    lista=servicios.filter(function(s){return s.estado==='Confirmado'||s.estado==='En curso';});
+  }
+  if(lista.length===0){
+    el.innerHTML='<div class="no-svc"><div class="ico">'+(svcView==='historial'?'📂':'📋')+'</div><p>'+(svcView==='historial'?'No hay servicios en el historial.':'No hay servicios activos.<br>Presioná <b>Sincronizar</b> para actualizar.')+'</p></div>';
     return;
   }
   var sel=getSelectedSvc();
   var bar=n('svc-selected-bar');
-  if(sel){bar.style.display='block';bar.textContent='▶ Trabajando en: '+sel.cliente+(sel.fecha?' · '+fDate(sel.fecha):'');}
+  if(sel&&svcView==='activos'){bar.style.display='block';bar.textContent='▶ Trabajando en: '+sel.cliente+(sel.fecha?' · '+fDate(sel.fecha):'');}
   else{bar.style.display='none';}
 
   var html='';
-  activos.forEach(function(s){
-    var isSel=s.id===selectedSvcId;
-    var bClass=s.estado==='En curso'?'b-curs':'b-conf';
-    var cardClass='svc-card'+(s.estado==='En curso'?' curso':'')+(isSel?' selected':'');
+  lista.forEach(function(s){
+    var isSel=s.id===selectedSvcId&&svcView==='activos';
+    var bClass=s.estado==='En curso'?'b-curs':s.estado==='Completado'?'b-comp':'b-conf';
+    var cardClass='svc-card'+(s.estado==='En curso'?' curso':'')+(s.estado==='Completado'?' comp':'')+(isSel?' selected':'');
     html+='<div class="'+cardClass+'" data-svc-id="'+s.id+'">';
     html+='<div style="display:flex;justify-content:space-between;align-items:center">';
     html+='<span class="svc-name">'+s.cliente+'</span>';
@@ -476,10 +496,12 @@ function renderServicios(){
 
   el.querySelectorAll('[data-svc-id]').forEach(function(card){
     card.addEventListener('click',function(){
-      selectedSvcId=card.dataset.svcId;
-      lsSet('bbt_sel',selectedSvcId);
-      renderServicios();
-      toast('Servicio seleccionado ✓ — Ir a Info');
+      if(svcView==='activos'){
+        selectedSvcId=card.dataset.svcId;
+        lsSet('bbt_sel',selectedSvcId);
+        renderServicios();
+        toast('Servicio seleccionado ✓ — Ir a Info');
+      }
     });
   });
 }
@@ -934,47 +956,19 @@ n('st-exec-fotos').addEventListener('change',function(){
       stExecFotos.push(e.target.result);
       var img=document.createElement('img');
       img.src=e.target.result;
-      img.style.cssText='width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid #e0e0e0';
+      img.style.cssText='width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid #ccc;cursor:pointer';
+      img.onclick=function(){stExecFotos.splice(stExecFotos.indexOf(e.target.result),1);img.remove();};
       n('st-exec-fotos-prev').appendChild(img);
     };
     reader.readAsDataURL(file);
   });
+  this.value='';
 });
 
-function guardarSTExec(estado){
-  var id=n('st-exec-current-id').value;
-  if(!id){toast('⚠️ Error: no hay orden seleccionada');return;}
-  var btn=estado==='Realizado'?n('btn-st-exec-guardar'):n('btn-st-exec-parcial');
-  btn.disabled=true; btn.textContent='Guardando...';
-  var payload={
-    id:id,
-    hora_ingreso:n('st-exec-hi').value||'',
-    hora_egreso:n('st-exec-he').value||'',
-    trabajos:n('st-exec-trabajos').value.trim(),
-    piezas:n('st-exec-piezas').value.trim(),
-    obs:n('st-exec-obs').value.trim(),
-    estado:estado,
-    fotos:JSON.stringify(stExecFotos)
-  };
-  sbUpsert('servicios_tecnicos',payload).then(function(){
-    toast(estado==='Realizado'?'✅ Orden marcada como Realizado':'💾 Avance guardado');
-    n('st-exec-panel').style.display='none';
-    document.body.style.overflow='';
-    cargarSTTec();
-  }).catch(function(e){
-    toast('⚠️ Error: '+e.message);
-  }).finally(function(){
-    btn.disabled=false;
-    btn.textContent=estado==='Realizado'?'✅ Marcar como Realizado':'💾 Guardar avance (En curso)';
-  });
-}
-
-n('btn-st-exec-guardar').addEventListener('click',function(){ guardarSTExec('Realizado'); });
-n('btn-st-exec-parcial').addEventListener('click',function(){ guardarSTExec('En curso'); });
-n('btn-st-refresh').addEventListener('click',cargarSTTec);
-
-// Cargar al abrir pestaña ST — ya se maneja en el tab click (if sc==='st' cargarSTTec())
-
+(function(){
+  setInterval(syncData,3*60*1000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)syncData();});
+})();
 </script>
 </body>
 </html>

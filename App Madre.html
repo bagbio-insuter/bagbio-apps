@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1B5E20">
 <title>Bag Bio — Campo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 /* ===== VARIABLES ===== */
 :root{
@@ -519,7 +520,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="copy-btn" data-copy="txt-dana">📋 Copiar</button>
         <button class="copy-btn" id="mail-btn-dana" style="background:#1a73e8;color:white;border:none">📧 Gmail Dana</button>
-        <button class="copy-btn" onclick="generarPDF('Dana','txt-dana')" style="background:#c62828;color:white;border:none">📄 PDF</button>
+        <button class="copy-btn" onclick="pdfWaDana()" style="background:#25D366;color:white;border:none">💬 WA Dana</button>
       </div>
     </div>
     <div id="msg-cli" style="display:none" class="msg-box cliente">
@@ -647,7 +648,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 <script>
 window.onerror=function(m,s,l,c,e){if(!m||m==='Script error.'||m==='Script error'||l===0)return true;var d=document.getElementById('err-banner');if(d){d.style.display='block';d.textContent='JS Error: '+m+' (línea '+l+')';} return true;};
 const KM={BRO:330,COTAGRO:330,OLEGA:392,CARMABE:709,ESPAR:677,'ESPAR Dep. Fiscal':175,'NATURAL FOOD':130,AGD:280};
-var CLIENTES=(function(){var _d=[
+var CLIENTES_DEFAULTS=[
   {n:'BRO',c:'Emiliano Valverde',t:'+54 9 2944602678',loc:'General Cabrera, Córdoba'},
   {n:'COTAGRO',c:'Nacho',t:'+54 9 3585486952',loc:'General Cabrera, Córdoba'},
   {n:'OLEGA',c:'Devora',t:'+54 9 3584384298',loc:'Reducción, Córdoba'},
@@ -657,19 +658,20 @@ var CLIENTES=(function(){var _d=[
   {n:'NATURAL FOOD',c:'Bruno',t:'+54 9 3513766785',loc:'—'},
   {n:'AGD',c:'—',t:'—',loc:'Gral. Deheza, Córdoba'},
 ];
+var CLIENTES=(function(){
 try{
   var _s=lsGet('bb_cli','');
   if(_s){
     var _p=JSON.parse(_s);
     if(_p&&_p.length>0){
       // Merge: add any default clients not in cached list
-      _d.forEach(function(dc){if(!_p.find(function(pc){return pc.n===dc.n;}))_p.push(dc);});
+      CLIENTES_DEFAULTS.forEach(function(dc){if(!_p.find(function(pc){return pc.n===dc.n;}))_p.push(dc);});
       return _p;
     }
   }
 }catch(e){}
-return _d;})();
-var RECETAS=[
+return CLIENTES_DEFAULTS.slice();})();
+var RECETAS_DEFAULTS=[
   {id:1,n:'Prueba / Calibración',v:870,tv:20,n2:800,co2:5,o2:5.0},
   {id:2,n:'Maní Tostado / Split',v:850,tv:20,n2:800,co2:5,o2:2.0},
   {id:3,n:'Maní Crudo',v:870,tv:25,n2:900,co2:5,o2:3.0},
@@ -682,15 +684,24 @@ var RECETAS=[
   {id:9,n:'Lino / Chía / Soja',v:860,tv:20,n2:800,co2:5,o2:3.0},
   {id:11,n:'Tratamiento Contenedor',v:0,tv:0,n2:0,co2:0,o2:0,tipo:'liner'},
 ];
-
-try{
-  var _rls=lsGet('bb_rec','');
-  if(_rls){var _rp=JSON.parse(_rls);if(_rp&&_rp.length>0){
-    // Merge: add any default recipes not in cached list
-    RECETAS.forEach(function(dr){if(!_rp.find(function(pr){return pr.id===dr.id;}))_rp.push(dr);});
-    RECETAS=_rp;
-  }}
-}catch(e){}
+function mergeRecetas(base){
+  // Filtra entradas inválidas (sin id numérico o sin nombre)
+  var clean=base.filter(function(r){return r&&typeof r.id==='number'&&r.id>0&&r.id<500&&typeof r.n==='string'&&r.n.length>0;});
+  // Asegura que los defaults siempre estén presentes con sus campos completos
+  RECETAS_DEFAULTS.forEach(function(dr){
+    var ex=clean.find(function(r){return r.id===dr.id;});
+    if(!ex){clean.push(Object.assign({},dr));}
+    else{if(dr.tipo)ex.tipo=dr.tipo;} // preservar campo tipo del default
+  });
+  return clean;
+}
+var RECETAS=(function(){
+  try{
+    var _rls=lsGet('bb_rec','');
+    if(_rls){var _rp=JSON.parse(_rls);if(Array.isArray(_rp)&&_rp.length>0)return mergeRecetas(_rp);}
+  }catch(e){}
+  return RECETAS_DEFAULTS.map(function(r){return Object.assign({},r);});
+})();
 const CFG_DEFS=[
   {cat:'fuel',ico:'⛽',k:'gasoil_precio',lbl:'Precio gasoil ($/L)',sub:'Actualizalo cuando cambie',def:1600},
   {cat:'fuel',ico:'🚗',k:'km_litro',lbl:'Consumo (km/L)',sub:'Hilux diésel',def:7.5},
@@ -710,6 +721,7 @@ const CFG_DEFS=[
   {cat:'personal',ico:'📧',k:'email_jo',lbl:'Email Josefina',sub:'Copia de cada servicio',tp:'email',def:'tecnica@insuter.com.ar'},
   {cat:'personal',ico:'💬',k:'wa_alcides',tp:'text',lbl:'WA Alcides',sub:'Sin + ni espacios',def:'5493521442534'},
   {cat:'personal',ico:'💬',k:'wa_gabriel',tp:'text',lbl:'WA Gabriel',sub:'Sin + ni espacios',def:'5493521407112'},
+  {cat:'personal',ico:'💬',k:'wa_dana',tp:'text',lbl:'WA Dana',sub:'Sin + ni espacios',def:''},
   {cat:'personal',ico:'🔧',k:'wa_sergio',tp:'text',lbl:'WA Sergio (Mant.)',sub:'Sin + ni espacios',def:'5493516457149'},
   {cat:'personal',ico:'🚐',k:'wa_taller',tp:'text',lbl:'WA Taller Toyota',sub:'Sin + ni espacios',def:'5493512117352'},
 ];
@@ -735,7 +747,7 @@ var cfg=JSON.parse(lsGet('bb_c','{}'));
 var cl=JSON.parse(lsGet('bb_cl','null'))||CL_DEF.map(function(i){return Object.assign({},i);});
 var apiUrl=lsGet('bb_url','');
 CFG_DEFS.forEach(function(d){if(cfg[d.k]===undefined)cfg[d.k]=d.def;});
-try{var sr=JSON.parse(lsGet('bb_rec','null'));if(sr)sr.forEach(function(r){var e=RECETAS.find(function(x){return x.id===r.id;});if(e)Object.assign(e,r);});}catch(ex){}
+// (bb_rec merge handled in RECETAS init above)
 
 function n(id){return document.getElementById(id);}
 function fNum(x){return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
@@ -980,12 +992,6 @@ n('btn-save-svc').addEventListener('click',function(){
     '  📋 Estado: '+s.estado+
     (s.obs?'\n  📝 Obs: '+s.obs:'')+
     '\n\nBag Bio / Control Bio\nDean Funes, Córdoba';
-  n('conf-cliente-nom').textContent=s.cliente;
-  n('conf-cliente-mail').dataset.dest=cli3&&cli3.e?cli3.e:'';
-  n('conf-dana-mail').dataset.dest=cfg['email_dana']||'';
-  n('conf-body').value=msgBody;
-  n('conf-sub').value='Confirmación servicio MAP - '+s.cliente+' - '+fDate(s.fecha);
-  openModal('modal-conf');
   toast('✅ Servicio guardado');
 });
 
@@ -1061,7 +1067,7 @@ function renderAgenda(){
       if(!tel){alert('Sin teléfono para '+sv.cliente);return;}
       var tn2=((sv.bb||0)*(sv.kg||1200)/1000).toFixed(1);
       var msg=encodeURIComponent('Confirmación servicio MAP — '+sv.cliente+'\n'+'📦 '+sv.producto+' · '+sv.bb+' BB · '+tn2+' Tn\n'+'🗓 '+fDate(sv.fecha)+'\n📋 Estado: '+sv.estado+'\n— Bag Bio / Control Bio');
-      window.open('https://wa.me/'+tel+'?text='+msg,'_blank');
+      window.open('whatsapp://send?phone='+tel+'&text='+msg,'_blank');
     });
   });
   el.querySelectorAll('[data-svc-mail]').forEach(function(b){
@@ -1109,7 +1115,7 @@ function renderClientes(){
   el.innerHTML=html;
   // WA buttons
   el.querySelectorAll('[data-tel]').forEach(function(btn){
-    btn.addEventListener('click',function(){window.open('https://wa.me/'+btn.dataset.tel,'_blank');});
+    btn.addEventListener('click',function(){window.open('whatsapp://send?phone='+btn.dataset.tel,'_blank');});
   });
   el.querySelectorAll('[data-email-cli]').forEach(function(btn){
     btn.addEventListener('click',function(){emailCliente(btn.dataset.emailCli);});
@@ -1341,7 +1347,7 @@ function syncData(){
   ]).then(function(res){
     var cfgR=res[0],svcs=res[1],chkR=res[2],clis=res[3];
     if(Array.isArray(cfgR))cfgR.forEach(function(r){
-      if(r.clave==='recetas_json'){try{var rp=JSON.parse(r.valor);if(rp&&rp.length)RECETAS=rp;lsSet('bb_rec',r.valor);}catch(e){}}
+      if(r.clave==='recetas_json'){try{var rp=JSON.parse(r.valor);if(Array.isArray(rp)&&rp.length){RECETAS=mergeRecetas(rp);lsSet('bb_rec',JSON.stringify(RECETAS));}}catch(e){}}
       else if(r.clave)cfg[r.clave]=r.valor;
     });
     if(Array.isArray(svcs)){
@@ -1360,7 +1366,10 @@ function syncData(){
     if(Array.isArray(clis)&&clis.length){
       var mapped=mapClientes(clis);
       var seen={};
-      CLIENTES=mapped.filter(function(c){if(seen[c.n])return false;seen[c.n]=true;return true;});
+      var synced=mapped.filter(function(c){if(seen[c.n])return false;seen[c.n]=true;return true;});
+      // Merge defaults not in Supabase (e.g. ESPAR Dep. Fiscal)
+      CLIENTES_DEFAULTS.forEach(function(dc){if(!synced.find(function(pc){return pc.n===dc.n;}))synced.push(dc);});
+      CLIENTES=synced;
       lsSet('bb_cli',JSON.stringify(CLIENTES));
     }
     lsSet('bb_s',JSON.stringify(servicios));lsSet('bb_c',JSON.stringify(cfg));lsSet('bb_cl',JSON.stringify(cl));
@@ -1391,11 +1400,11 @@ async function postAPI(action,payload){
 
 n('wa-btn-alcides').addEventListener('click',function(){
   var tel=cfg['wa_alcides']||'5493521442534';
-  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(n('txt-tec').textContent),'_blank');
+  window.open('whatsapp://send?phone='+tel+'&text='+encodeURIComponent(n('txt-tec').textContent),'_blank');
 });
 n('wa-btn-gabriel').addEventListener('click',function(){
   var tel=cfg['wa_gabriel']||'5493521407112';
-  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(n('txt-tec').textContent),'_blank');
+  window.open('whatsapp://send?phone='+tel+'&text='+encodeURIComponent(n('txt-tec').textContent),'_blank');
 });
 n('mail-btn-jo').addEventListener('click',function(){
   var dest=cfg['email_jo']||'tecnica@insuter.com.ar';
@@ -1575,7 +1584,7 @@ n('hx-btn-wa').addEventListener('click',function(){
   var km=parseInt(n('hx-km-act').value)||hxData.kmAct;
   var restantes=(hxData.kmSrv+hxData.intervalo)-km;
   var msg='🚐 *Hilux Bag Bio — Solicitud de turno*\nKM actuales: '+km.toLocaleString('es-AR')+'\nKM desde último service: '+(km-hxData.kmSrv).toLocaleString('es-AR')+'\nKM para próximo service: '+Math.max(restantes,0).toLocaleString('es-AR')+'\n\nNecesitamos coordinar turno. Gracias!';
-  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
+  window.open('whatsapp://send?phone='+tel+'&text='+encodeURIComponent(msg),'_blank');
 });
 
 n('hx-btn-call-asist').addEventListener('click',function(){
@@ -1612,12 +1621,58 @@ function generarPDF(titulo, elId){
     '<div class="footer">Bag Bio / Control Bio — Generado el '+new Date().toLocaleDateString('es-AR')+'</div>'+
     '<button onclick="window.close()" style="position:fixed;top:14px;right:14px;background:#c62828;color:white;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;font-weight:700;cursor:pointer;z-index:999;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,0.3)" title="Cerrar">×</button>'+
     '</body></html>';
-  var w=window.open('','_blank');
-  w.document.write(html);
-  w.document.close();
-  w.focus();
-  setTimeout(function(){w.print();},500);
+  var _html=html.replace('</body></html>','<script>window.onload=function(){setTimeout(function(){window.print();},400);}<\/script></body></html>');
+  var _blob=new Blob([_html],{type:'text/html;charset=utf-8'});
+  var _url=URL.createObjectURL(_blob);
+  var w=window.open(_url,'_blank');
+  if(!w){toast('⚠️ Habilitar popups para generar PDF');return;}
+  setTimeout(function(){URL.revokeObjectURL(_url);},60000);
 }
+
+
+function pdfWaDana(){
+  var num=(cfg['wa_dana']||'').replace(/\D/g,'');
+  if(!num){toast('⚠️ Cargá el WA de Dana en Configuración');return;}
+  var el=document.getElementById('txt-dana');
+  var txt=el?el.textContent.trim():'';
+  if(!txt){toast('⚠️ No hay servicio cargado');return;}
+  if(!window.jspdf){toast('⚠️ Cargando librería PDF, intentá de nuevo en 3 seg');return;}
+  var doc=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  // Header verde
+  doc.setFillColor(27,94,32);
+  doc.rect(0,0,210,22,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(15);
+  doc.setFont('helvetica','bold');
+  doc.text('Bag Bio / Control Bio',14,13);
+  doc.setFontSize(9);
+  doc.setFont('helvetica','normal');
+  doc.text('Servicios de Atmósfera Modificada  ·  Dean Funes, Córdoba',14,20);
+  // Contenido
+  doc.setTextColor(30,30,30);
+  doc.setFontSize(11);
+  doc.setFont('helvetica','normal');
+  var lineas=doc.splitTextToSize(txt,182);
+  doc.text(lineas,14,34);
+  // Footer
+  doc.setDrawColor(200,200,200);
+  doc.setLineWidth(0.3);
+  doc.line(14,280,196,280);
+  doc.setFontSize(8);
+  doc.setTextColor(150,150,150);
+  var fd=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  doc.text('Bag Bio / Control Bio — '+fd+'  ·  Dean Funes, Córdoba, Argentina',14,287);
+  // Nombre de archivo
+  var cli=document.getElementById('f-cliente')?document.getElementById('f-cliente').value.replace(/[^a-zA-Z0-9]/g,'_'):'Servicio';
+  var ds=new Date().toISOString().slice(0,10);
+  doc.save('BagBio_'+cli+'_'+ds+'.pdf');
+  toast('📥 PDF descargado — adjuntalo en el chat de Dana');
+  setTimeout(function(){
+    window.open('whatsapp://send?phone='+num,'_blank');
+  },900);
+}
+
+
 
 syncData();
 
@@ -1761,36 +1816,19 @@ n('btn-guardar-st').addEventListener('click',function(){
 // Tab switching
 document.querySelectorAll('.tab').forEach(function(tab){
   tab.addEventListener('click',function(){
-    document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
     document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
-    var sc=tab.dataset.screen;
-    n('sc-'+sc).classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(function(c){c.style.display='none';});
     tab.classList.add('active');
-    // fab always visible in sidebar
-    if(sc==='config')renderCfg();
-    if(sc==='checklist')renderCL();
-    if(sc==='calendario')renderCalendario();
-    if(sc==='hilux')renderHilux();
+    var tgt=tab.dataset.tab;
+    if(tgt){var el=document.getElementById(tgt);if(el)el.style.display='block';}
   });
 });
 
-// Modal close
-document.querySelectorAll('[data-close]').forEach(function(btn){
-  btn.addEventListener('click',function(){n(btn.dataset.close).classList.remove('open');});
-});
-document.querySelectorAll('.overlay').forEach(function(ov){
-  ov.addEventListener('click',function(e){if(e.target===ov)ov.classList.remove('open');});
-});
-
-// ── AUTO-SYNC ─────────────────────────────────────────────────────────────────
+// ===== AUTO-SYNC =====
 (function(){
-  setInterval(function(){ syncData(); cargarSTMadre(); }, 3*60*1000);
-  document.addEventListener('visibilitychange',function(){
-    if(!document.hidden){ syncData(); cargarSTMadre(); }
-  });
+  setInterval(syncData,3*60*1000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)syncData();});
 })();
-
-cargarSTMadre(syncData);
 </script>
 </body>
 </html>
