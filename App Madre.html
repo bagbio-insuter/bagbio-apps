@@ -431,7 +431,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
       <div class="sel-wrap"><select id="f-cliente">
         <option value="">— Seleccionar —</option>
         <option>BRO</option><option>COTAGRO</option><option>OLEGA</option>
-        <option>CARMABE</option><option>ESPAR</option><option>NATURAL FOOD</option><option>AGD</option>
+        <option>CARMABE</option><option>ESPAR</option><option>ESPAR Dep. Fiscal</option><option>NATURAL FOOD</option><option>AGD</option>
       </select></div></div>
     <div class="field"><label>Producto</label>
       <div class="sel-wrap"><select id="f-prod">
@@ -445,10 +445,40 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
       <div class="sel-wrap"><select id="f-tipo">
         <option value="envasado">Envasado + Tratamiento</option>
         <option value="sellado">Solo Sellado + Tratamiento</option>
+        <option value="liner">Liner de Contenedores</option>
       </select></div></div>
-    <div class="row2">
+    <div id="bb-block" class="row2">
       <div class="field"><label>Big Bags</label><input type="number" id="f-bb" placeholder="120" min="1"></div>
       <div class="field"><label>Kg por BB</label><input type="number" id="f-kg" value="1200" min="1"></div>
+    </div>
+    <div id="liner-block" style="display:none;background:#E8F5E9;border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid #A5D6A7">
+      <div style="font-size:12px;font-weight:800;color:#1B5E20;text-transform:uppercase;margin-bottom:10px;letter-spacing:.5px">📦 Liner de Contenedores</div>
+      <div class="row2">
+        <div class="field"><label>Cantidad de liners</label><input type="number" id="f-liner" placeholder="0" min="0" value="0"></div>
+        <div class="field"><label>Tamaño contenedor</label>
+          <div class="sel-wrap"><select id="f-liner-tipo">
+            <option value="20'">20 pies</option>
+            <option value="40'">40 pies</option>
+            <option value="40HC">40 HC</option>
+          </select></div>
+        </div>
+      </div>
+      <div class="row2" style="margin-top:8px">
+        <div class="field"><label>🔵 Gas de inyección</label>
+          <div class="sel-wrap"><select id="f-liner-gas">
+            <option value="N2">Nitrógeno (N₂)</option>
+            <option value="CO2">Dióxido de carbono (CO₂)</option>
+            <option value="mezcla">Mezcla N₂ + CO₂</option>
+            <option value="ninguno">Sin inyección</option>
+          </select></div>
+        </div>
+        <div class="field"><label>💨 Vacío aplicado</label>
+          <div class="sel-wrap"><select id="f-liner-vacio">
+            <option value="si">Con vacío</option>
+            <option value="no">Sin vacío</option>
+          </select></div>
+        </div>
+      </div>
     </div>
     <div id="prod2-toggle" style="margin:-4px 0 10px;text-align:right">
       <button type="button" id="btn-add-prod2" style="background:none;border:none;color:#E65100;font-size:12px;font-weight:700;cursor:pointer">＋ Agregar 2° producto</button>
@@ -561,13 +591,17 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
     <div class="m-title" style="justify-content:center">¿Qué tipo de servicio?
       <button class="m-close" data-close="modal-tipo" style="position:absolute;right:20px">×</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:8px 0 16px">
-      <button id="tipo-envasado" style="padding:28px 16px;border:2px solid #e0e0e0;border-radius:14px;background:white;cursor:pointer;font-size:14px;font-weight:700;color:#1B5E20;transition:all .18s" onmouseover="this.style.background='#e8f5e9'" onmouseout="this.style.background='white'">
-        <div style="font-size:40px;margin-bottom:10px">📦</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:8px 0 16px">
+      <button id="tipo-envasado" style="padding:22px 12px;border:2px solid #e0e0e0;border-radius:14px;background:white;cursor:pointer;font-size:13px;font-weight:700;color:#1B5E20;transition:all .18s" onmouseover="this.style.background='#e8f5e9';this.style.borderColor='#4CAF50'" onmouseout="this.style.background='white';this.style.borderColor='#e0e0e0'">
+        <div style="font-size:36px;margin-bottom:8px">📦</div>
         Envasado MAP
       </button>
-      <button id="tipo-st" style="padding:28px 16px;border:2px solid #e0e0e0;border-radius:14px;background:white;cursor:pointer;font-size:14px;font-weight:700;color:#00695C;transition:all .18s" onmouseover="this.style.background='#e0f2f1'" onmouseout="this.style.background='white'">
-        <div style="font-size:40px;margin-bottom:10px">🔧</div>
+      <button id="tipo-liner" style="padding:22px 12px;border:2px solid #e0e0e0;border-radius:14px;background:white;cursor:pointer;font-size:13px;font-weight:700;color:#1565C0;transition:all .18s" onmouseover="this.style.background='#e3f2fd';this.style.borderColor='#1565C0'" onmouseout="this.style.background='white';this.style.borderColor='#e0e0e0'">
+        <div style="font-size:36px;margin-bottom:8px">🚢</div>
+        Liner Contenedor
+      </button>
+      <button id="tipo-st" style="padding:22px 12px;border:2px solid #e0e0e0;border-radius:14px;background:white;cursor:pointer;font-size:13px;font-weight:700;color:#00695C;transition:all .18s" onmouseover="this.style.background='#e0f2f1';this.style.borderColor='#00897B'" onmouseout="this.style.background='white';this.style.borderColor='#e0e0e0'">
+        <div style="font-size:36px;margin-bottom:8px">🔧</div>
         Servicio Técnico
       </button>
     </div>
@@ -612,13 +646,14 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 
 <script>
 window.onerror=function(m,s,l,c,e){if(!m||m==='Script error.'||m==='Script error'||l===0)return true;var d=document.getElementById('err-banner');if(d){d.style.display='block';d.textContent='JS Error: '+m+' (línea '+l+')';} return true;};
-const KM={BRO:330,COTAGRO:330,OLEGA:392,CARMABE:709,ESPAR:677,'NATURAL FOOD':130,AGD:280};
+const KM={BRO:330,COTAGRO:330,OLEGA:392,CARMABE:709,ESPAR:677,'ESPAR Dep. Fiscal':175,'NATURAL FOOD':130,AGD:280};
 var CLIENTES=(function(){var _d=[
   {n:'BRO',c:'Emiliano Valverde',t:'+54 9 2944602678',loc:'General Cabrera, Córdoba'},
   {n:'COTAGRO',c:'Nacho',t:'+54 9 3585486952',loc:'General Cabrera, Córdoba'},
   {n:'OLEGA',c:'Devora',t:'+54 9 3584384298',loc:'Reducción, Córdoba'},
   {n:'CARMABE',c:'Julio',t:'+54 9 1158461950',loc:'El Salvador, Entre Ríos'},
   {n:'ESPAR',c:'Fernanda',t:'+54 9 3815069984',loc:'Baradero, Buenos Aires'},
+  {n:'ESPAR Dep. Fiscal',c:'Fernanda',t:'+54 9 3815069984',loc:'Depósito Fiscal, Córdoba Capital',km:175},
   {n:'NATURAL FOOD',c:'Bruno',t:'+54 9 3513766785',loc:'—'},
   {n:'AGD',c:'—',t:'—',loc:'Gral. Deheza, Córdoba'},
 ];
@@ -634,6 +669,7 @@ var RECETAS=[
   {id:8,n:'Nuez Pecán',v:880,tv:25,n2:900,co2:5,o2:2.0},
   {id:10,n:'Pistacho',v:880,tv:25,n2:900,co2:5,o2:2.0},
   {id:9,n:'Lino / Chía / Soja',v:860,tv:20,n2:800,co2:5,o2:3.0},
+  {id:11,n:'Tratamiento Contenedor',v:0,tv:0,n2:0,co2:0,o2:0,tipo:'liner'},
 ];
 
 try{var _rls=lsGet('bb_rec','');if(_rls){var _rp=JSON.parse(_rls);if(_rp&&_rp.length>0)RECETAS=_rp;}}catch(e){}
@@ -686,7 +722,7 @@ try{var sr=JSON.parse(lsGet('bb_rec','null'));if(sr)sr.forEach(function(r){var e
 function n(id){return document.getElementById(id);}
 function fNum(x){return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
 function fDate(d){if(!d)return'';var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
-function dias(bb,tipo){return bb?Math.ceil(bb/(tipo==='sellado'?60:40)):0;}
+function dias(bb,tipo){if(tipo==='liner')return 1;return bb?Math.ceil(bb/(tipo==='sellado'?60:40)):0;}
 function viat(km,d,kmd,noches){
   // Viáticos = desayunos + meriendas + almuerzos + cenas — SIEMPRE 2 personas
   var personas=2;
@@ -752,19 +788,30 @@ function fb(txt){var t=document.createElement('textarea');t.value=txt;document.b
 
 // FAB
 n('fab-btn').addEventListener('click',function(){
-  n('f-fecha').valueAsDate=new Date();
-  n('f-hotel').value='0';n('f-dias-extra').value='0';n('f-km-extra').value='0';n('f-cargas-virt').value='0';n('f-extras').value='0';
-  n('msg-dana').style.display='none';n('msg-cli').style.display='none';n('dias-badge').style.display='none';
-  openModal('modal-svc');
+  n('modal-tipo').classList.add('open');
 });
+// Reset form when opening envasado from picker
 
-// Days update on change
+
+// Days update on change + liner toggle
+function toggleLiner(){
+  var tipo=n('f-tipo').value;
+  var showLiner=(tipo==='envasado'||tipo==='liner');
+  var showBB=(tipo!=='liner');
+  n('liner-block').style.display=showLiner?'block':'none';
+  if(n('bb-block'))n('bb-block').style.display=showBB?'':'none';
+  if(!showLiner){n('f-liner').value='0';}
+  // Update label in liner block header
+  var hdr=n('liner-block').querySelector('div');
+  if(hdr){hdr.textContent=tipo==='liner'?'🚢 Datos del Liner':'📦 Liner de Contenedores (opcional)';}
+}
 ['f-bb','f-tipo'].forEach(function(id){
   n(id).addEventListener('input',function(){
     var bb=parseInt(n('f-bb').value)||0,tipo=n('f-tipo').value;
     var d=dias(bb,tipo);
     if(bb){n('dias-badge').style.display='flex';n('dias-badge').textContent='🗓 '+d+' día/s estimados · '+bb+' BB';}
     else n('dias-badge').style.display='none';
+    if(id==='f-tipo'){toggleLiner();populateRecSelect();}
   });
 });
 n('f-cliente').addEventListener('change',function(){
@@ -791,7 +838,8 @@ n('btn-rem-prod2').addEventListener('click',function(){
 n('btn-gen-msg').addEventListener('click',function(){
   var cl2=n('f-cliente').value,pr=n('f-prod').value;
   var bb=parseInt(n('f-bb').value)||0;
-  if(!cl2||!bb){toast('Completá cliente y cantidad de BB');return;}
+  var tipo2=n('f-tipo').value;
+  if(!cl2||(tipo2!=='liner'&&!bb)){toast('Completá cliente y cantidad de BB');return;}
   var kg=parseInt(n('f-kg').value)||1200,rec=n('f-rec').value;
   var pr2=n('f-prod2').value,bb2=parseInt(n('f-bb2').value)||0,kg2=parseInt(n('f-kg2').value)||1200;
   var hasP2=pr2&&bb2>0;
@@ -862,7 +910,11 @@ n('btn-gen-msg').addEventListener('click',function(){
 // Save service
 n('btn-save-svc').addEventListener('click',function(){
   var cl2=n('f-cliente').value,pr=n('f-prod').value,bb=parseInt(n('f-bb').value)||0;
-  if(!cl2||!pr||!bb){toast('Completá cliente, producto y BB');return;}
+  var tipoSvc=n('f-tipo').value;
+  var needsBB=(tipoSvc!=='liner');
+  if(!cl2){toast('Seleccioná un cliente');return;}
+  if(needsBB&&(!pr||!bb)){toast('Completá producto y BB');return;}
+  if(!needsBB&&parseInt(n('f-liner').value)<1){toast('Ingresá la cantidad de liners');return;}
   var pr2s=n('f-prod2').value,bb2s=parseInt(n('f-bb2').value)||0,kg2s=parseInt(n('f-kg2').value)||1200;
   var hasP2s=pr2s&&bb2s>0;
   var prodDisplay=hasP2s?pr+' + '+pr2s:pr;
@@ -881,7 +933,11 @@ n('btn-save-svc').addEventListener('click',function(){
   var cargasVirtV=parseFloat(n('f-cargas-virt').value)||0;
   var extrasV=parseFloat(n('f-extras').value)||0;
   var viatTotal=Math.round(viatBase+combustVueltaV+combustExtra+cargasVirtV+extrasV);
-  var s={id:'SRV-'+Date.now(),fecha:n('f-fecha').value,cliente:cl2,producto:prodDisplay,tipo:tipo,bb:bb,kg:parseInt(n('f-kg').value)||1200,receta:parseInt(n('f-rec').value)||0,kmdest:parseInt(n('f-kmd').value)||0,estado:n('f-est').value,obs:n('f-obs').value,hotel:hotelExtra,producto2:pr2s,bb2:bb2s,kg2:kg2s,dias_extra:diasExtra,km_extra:kmExtraV,cargas_virt:cargasVirtV,extras:extrasV,viat_total:viatTotal};
+  var linerCant=parseInt(n('f-liner').value)||0;
+  var linerTipo=n('f-liner-tipo').value;
+  var linerGas=n('f-liner-gas')?n('f-liner-gas').value:'';
+  var linerVacio=n('f-liner-vacio')?n('f-liner-vacio').value:'no';
+  var s={id:'SRV-'+Date.now(),fecha:n('f-fecha').value,cliente:cl2,producto:prodDisplay,tipo:tipo,bb:bb,kg:parseInt(n('f-kg').value)||1200,receta:parseInt(n('f-rec').value)||0,kmdest:parseInt(n('f-kmd').value)||0,estado:n('f-est').value,obs:n('f-obs').value,hotel:hotelExtra,producto2:pr2s,bb2:bb2s,kg2:kg2s,dias_extra:diasExtra,km_extra:kmExtraV,cargas_virt:cargasVirtV,extras:extrasV,viat_total:viatTotal,liner:linerCant,liner_tipo:linerTipo,liner_gas:linerGas,liner_vacio:linerVacio};
   servicios.unshift(s);lsSet('bb_s',JSON.stringify(servicios));
   postAPI('saveServicio',s);
   renderAgenda();closeModal('modal-svc');
@@ -898,7 +954,7 @@ n('btn-save-svc').addEventListener('click',function(){
     'Le confirmamos el siguiente servicio de atmósfera modificada:\n\n'+
     '  📦 Producto: '+s.producto+'\n'+
     '  📅 Fecha: '+fDate(s.fecha)+'\n'+
-    '  📊 Cantidad: '+s.bb+' Big Bags ('+tn+' Tn)\n'+
+    '  📊 Cantidad: '+s.bb+' Big Bags ('+tn+' Tn)'+(s.liner>0?' + '+s.liner+' liner/s '+s.liner_tipo+' · Gas: '+(s.liner_gas||'N2')+(s.liner_vacio==='si'?' + vacío':''):'')+'\n'+
     '  ⏱ Duración estimada: '+d+' día/s\n'+
     '  🧪 Receta: '+rec.n+'\n'+
     '  🔵 Tubos N₂ estimados: '+tubos+
@@ -1079,12 +1135,16 @@ n('nc-save-btn').addEventListener('click',async function(){
   if(!ok)toast('⚠️ Error al guardar en Supabase');
 });
 
-function populateRecSelect(){
+function populateRecSelect(tipoFiltro){
   var sel=n('f-rec');
   if(!sel)return;
   var cur=sel.value;
   sel.innerHTML='<option value="">— Seleccionar —</option>';
+  var isLiner=(tipoFiltro||n('f-tipo').value)==='liner';
   RECETAS.forEach(function(r){
+    // Para liner: solo mostrar recetas tipo liner; para otros: ocultar las de liner
+    if(isLiner && r.tipo!=='liner') return;
+    if(!isLiner && r.tipo==='liner') return;
     var opt=document.createElement('option');
     opt.value=r.id;
     opt.textContent=r.id+' — '+r.n;
@@ -1296,7 +1356,7 @@ async function postAPI(action,payload){
   try{
     if(action==='saveServicio'){
       // Solo enviar campos que tienen valor (evita error de columnas faltantes)
-      var p={id:payload.id,fecha:payload.fecha,cliente:payload.cliente,producto:payload.producto,tipo:payload.tipo,bb:payload.bb||0,kg:payload.kg||1200,kmdest:payload.kmdest||0,estado:payload.estado||'Pendiente',obs:payload.obs||'',hotel:payload.hotel||0,dias_extra:payload.dias_extra||0,km_extra:payload.km_extra||0,cargas_virt:payload.cargas_virt||0,extras:payload.extras||0,viat_total:payload.viat_total||0};
+      var p={id:payload.id,fecha:payload.fecha,cliente:payload.cliente,producto:payload.producto,tipo:payload.tipo,bb:payload.bb||0,kg:payload.kg||1200,kmdest:payload.kmdest||0,estado:payload.estado||'Pendiente',obs:payload.obs||'',hotel:payload.hotel||0,dias_extra:payload.dias_extra||0,km_extra:payload.km_extra||0,cargas_virt:payload.cargas_virt||0,extras:payload.extras||0,viat_total:payload.viat_total||0,liner:payload.liner||0,liner_tipo:payload.liner_tipo||'',liner_gas:payload.liner_gas||'',liner_vacio:payload.liner_vacio||'no'};
       if(payload.bb2&&payload.bb2>0){p.bb2=payload.bb2;p.kg2=payload.kg2||1200;p.producto2=payload.producto2||'';}
       var ok=await sbUpsert('servicios',p);
       if(!ok)toast('⚠️ Error al guardar en Supabase — revisá consola');
@@ -1617,8 +1677,30 @@ n('fab-btn').addEventListener('click',function(){
 });
 n('tipo-envasado').addEventListener('click',function(){
   n('modal-tipo').classList.remove('open');
+  // Reset form
+  n('f-tipo').value='envasado';
+  n('f-liner').value='0';n('liner-block').style.display='none';
+  if(n('bb-block'))n('bb-block').style.display='';
+  if(n('f-liner-gas'))n('f-liner-gas').value='N2';
+  if(n('f-liner-vacio'))n('f-liner-vacio').value='si';
+  n('f-hotel').value='0';n('f-dias-extra').value='0';n('f-km-extra').value='0';
+  n('f-cargas-virt').value='0';n('f-extras').value='0';
+  n('msg-dana').style.display='none';n('msg-cli').style.display='none';n('dias-badge').style.display='none';
+  n('f-fecha').valueAsDate=new Date();
   n('modal-svc').classList.add('open');
-  n('f-fecha').value=new Date().toISOString().slice(0,10);
+});
+n('tipo-liner').addEventListener('click',function(){
+  n('modal-tipo').classList.remove('open');
+  // Open service modal pre-set to liner type
+  n('f-fecha').valueAsDate=new Date();
+  n('f-hotel').value='0';n('f-dias-extra').value='0';n('f-km-extra').value='0';n('f-cargas-virt').value='0';n('f-extras').value='0';
+  n('f-liner').value='1';if(n('f-liner-gas'))n('f-liner-gas').value='N2';if(n('f-liner-vacio'))n('f-liner-vacio').value='si';
+  n('msg-dana').style.display='none';n('msg-cli').style.display='none';n('dias-badge').style.display='none';
+  n('f-tipo').value='liner';
+  toggleLiner();
+  populateRecSelect('liner');
+  n('f-rec').value='11'; // pre-select Tratamiento Contenedor
+  n('modal-svc').classList.add('open');
 });
 n('tipo-st').addEventListener('click',function(){
   n('modal-tipo').classList.remove('open');

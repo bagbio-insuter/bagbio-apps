@@ -446,7 +446,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 </div>
 
 <script>
-var KM={BRO:330,COTAGRO:330,OLEGA:392,CARMABE:709,ESPAR:677,'NATURAL FOOD':130,AGD:280};
+var KM={BRO:330,COTAGRO:330,OLEGA:392,CARMABE:709,ESPAR:677,'ESPAR Dep. Fiscal':175,'NATURAL FOOD':130,AGD:280};
 var MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 var CFG_DEFS=[
   {cat:'fuel',ico:'⛽',k:'gasoil_precio',lbl:'Precio gasoil ($/L)',sub:'',def:1600},
@@ -492,7 +492,7 @@ var CLIENTES=JSON.parse(lsGet('bba_cli','[{"n":"BRO","c":"Emiliano Valverde","t"
 function n(id){return document.getElementById(id);}
 function fNum(x){return Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
 function fDate(d){if(!d)return'';var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
-function dias(bb,tipo){return bb?Math.ceil(bb/(tipo==='sellado'?60:40)):0;}
+function dias(bb,tipo){if(tipo==='liner')return 1;return bb?Math.ceil(bb/(tipo==='sellado'?60:40)):0;}
 function toast(msg){var t=n('toast');t.textContent=msg;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2600);}
 function totalGastos(id){return sbGastos.filter(function(g){return String(g.servicio_id)===String(id);}).reduce(function(a,g){return a+(parseFloat(g.monto)||0);},0);}
 function calcEcon(s){
@@ -624,7 +624,8 @@ function renderSvc(){
     html+='<div class="svc-card" data-idx="'+idx+'">';
     html+='<div class="svc-hdr"><div class="svc-left">';
     html+='<div class="svc-name">'+s.cliente+'</div>';
-    html+='<div class="svc-sub">'+s.producto+' &middot; '+e.bb+' BB &middot; '+e.tn+' Tn &middot; '+fDate(s.fecha)+'</div>';
+    var svcSub=s.tipo==='liner'?(s.liner||1)+' liner/s '+((s.liner_tipo)||'')+(s.liner_gas?' · '+s.liner_gas:'')+(s.liner_vacio==='si'?' + vacío':''):e.bb+' BB · '+e.tn+' Tn';
+html+='<div class="svc-sub">'+s.producto+' &middot; '+svcSub+' &middot; '+fDate(s.fecha)+'</div>';
     html+='<span class="badge '+bClass+'">'+s.estado+'</span>';
     html+='</div><div class="svc-right">';
     html+='<div class="svc-precio">$'+fNum(e.ingresoPesos)+'</div>';
@@ -772,7 +773,7 @@ function renderSvc(){
         '\n  ──────────────\n  TOTAL A TRANSFERIR: $'+fNum(totalTransf);
       var hotelInfo=hotelExtra>0?'\n🏨 Hotel: '+hotelExtra+' noche/s adicionale/s — reservar desde admin.':'';
       var hotelBase=(Math.max(dTot-1,0)>0&&!hotelExtra)?'\n🏨 Hotel: '+Math.max(dTot-1,0)+' noche/s — verificar reserva.':'';
-      var tipoLbl=s.tipo==='sellado'?'Sellado':'Envasado';
+      var tipoLbl=s.tipo==='liner'?'Liner Contenedor':s.tipo==='sellado'?'Sellado':'Envasado';
       var msg='✅ SERVICIO CONFIRMADO\n'+
         'Cliente: '+s.cliente+'\n'+
         'Producto: '+(s.producto||'—')+' — '+tipoLbl+'\n'+
@@ -1517,7 +1518,7 @@ function genComprobanteViaticos(s, datos){
 function genOrdenStella(s, d){
   var fDate=function(f){if(!f)return '—';if(/^\d{4}-/.test(f)){var p=f.split('-');return p[2]+'/'+p[1]+'/'+p[0];}return f;};
   var fNum=function(n){return Math.round(n).toLocaleString('es-AR');};
-  var tipoLbl=s.tipo==='sellado'?'Sellado':'Envasado MAP';
+  var tipoLbl=s.tipo==='liner'?'Liner Contenedor':s.tipo==='sellado'?'Sellado':'Envasado MAP';
   var fecha=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
   var items=[
     {lbl:'Desayunos ('+d.dTot+' día/s × 2 personas)', val:d.desay2},

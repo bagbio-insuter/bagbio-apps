@@ -366,7 +366,7 @@ document.querySelectorAll('.tab').forEach(function(tb){
 });
 
 // ===== SYNC =====
-n('syncBtn').addEventListener('click',function(){syncData();
+n('syncBtn').addEventListener('click',function(){syncData();});
 
 // ── AUTO-SYNC ────────────────────────────────────────────────────────────────
 (function(){
@@ -375,7 +375,11 @@ n('syncBtn').addEventListener('click',function(){syncData();
     if(!document.hidden) syncData();
   });
 })();
-});
+
+// ── STARTUP ──────────────────────────────────────────────────────────────────
+// Render from cache first, then sync with Supabase
+renderServicios();
+syncData();
 function syncData(){
   n('syncDot').className='dot sync';
   // Traer servicios activos (Confirmado + En curso), URL encoded
@@ -827,7 +831,7 @@ n('hx-btn-reg').addEventListener('click',function(){
 });
 
 // ===== SERVICIO TÉCNICO (ST) =====
-var // ===== ST TÉCNICOS — recibe órdenes de App Madre =====
+// ===== ST TÉCNICOS — recibe órdenes de App Madre =====
 var stExecFotos = [];
 var stListaTec = [];
 
@@ -858,7 +862,7 @@ function renderSTTec(rows){
     var fD=st.fecha?st.fecha.split('-').reverse().join('/'):'—';
     var est=st.estado||'Pendiente';
     var done=(est==='Realizado'||est==='Pagado');
-    var html='<div style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);border-left:4px solid '+(done?'#4CAF50':'#00897B')+';cursor:'+(done?'default':'pointer')+'" '+(done?'':('onclick="abrirSTExec('+JSON.stringify(st).replace(/\/g,'\\').replace(/"/g,'&quot;')+')"'))+' >';
+    var html='<div style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);border-left:4px solid '+(done?'#4CAF50':'#00897B')+';cursor:'+(done?'default':'pointer')+'" '+(done?'':'data-st-id="'+st.id+'"')+' >';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
     html+='<span style="font-size:11px;font-weight:700;color:#00695C">'+st.id+'</span>';
     html+='<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;background:'+(estColor[est]||'#f5f5f5')+';color:'+(estText[est]||'#555')+'">'+est+'</span></div>';
@@ -881,6 +885,14 @@ function renderSTTec(rows){
     realizados.forEach(function(st){ html+=cardHTML(st); });
   }
   el.innerHTML=html;
+  // Event delegation for ST cards
+  el.querySelectorAll('[data-st-id]').forEach(function(card){
+    card.addEventListener('click',function(){
+      var stId=card.dataset.stId;
+      var stObj=stListaTec.find(function(x){return String(x.id)===String(stId);});
+      if(stObj) abrirSTExec(stObj);
+    });
+  });
 }
 
 function abrirSTExec(st){
@@ -961,5 +973,8 @@ n('btn-st-exec-guardar').addEventListener('click',function(){ guardarSTExec('Rea
 n('btn-st-exec-parcial').addEventListener('click',function(){ guardarSTExec('En curso'); });
 n('btn-st-refresh').addEventListener('click',cargarSTTec);
 
-// Cargar al abrir pestaña ST
->
+// Cargar al abrir pestaña ST — ya se maneja en el tab click (if sc==='st' cargarSTTec())
+
+</script>
+</body>
+</html>
