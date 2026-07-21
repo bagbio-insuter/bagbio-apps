@@ -430,6 +430,44 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 
 <div class="toast" id="toast"></div>
 
+<!-- ===== MODAL TRANSFERENCIA STELLA ===== -->
+<div class="modal-ov" id="stella-modal" style="display:none">
+  <div class="modal-bx" style="width:min(560px,96vw)">
+    <div class="modal-ttl" style="color:#1A237E">💬 Orden de Transferencia — Stella</div>
+    <div class="modal-sub" id="stella-modal-sub">Revisá y ajustá los montos antes de generar el PDF</div>
+    <div id="stella-items-wrap" style="margin-bottom:12px"></div>
+    <button onclick="addStellaLine()" style="width:100%;padding:9px;border:2px dashed #1A237E;border-radius:10px;background:white;color:#1A237E;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:12px">➕ Agregar concepto</button>
+    <div style="background:#1A237E;border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <span style="color:white;font-weight:800;font-size:14px">TOTAL A TRANSFERIR</span>
+      <span id="stella-total-display" style="color:white;font-weight:900;font-size:18px">$0</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="document.getElementById('stella-modal').style.display='none'" style="flex:1;padding:11px;border-radius:10px;border:2px solid #ddd;background:white;color:#666;font-weight:700;cursor:pointer">Cancelar</button>
+      <button onclick="stellaConfirmarPDF()" style="flex:2;padding:11px;border-radius:10px;border:none;background:#1A237E;color:white;font-weight:800;font-size:14px;cursor:pointer">📄 Generar PDF y WA Stella</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL VIÁTICOS GABRIEL ===== -->
+<div class="modal-ov" id="gab-modal" style="display:none">
+  <div class="modal-bx" style="width:min(600px,96vw)">
+    <div class="modal-ttl">💸 Viáticos — Gabriel Rodriguez</div>
+    <div class="modal-sub" id="gab-modal-sub">Revisá y ajustá los montos antes de generar el PDF</div>
+    <div id="gab-items-wrap" style="margin-bottom:12px">
+      <!-- filas dinámicas -->
+    </div>
+    <button onclick="addGabLine()" style="width:100%;padding:9px;border:2px dashed #BF360C;border-radius:10px;background:white;color:#BF360C;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:12px">➕ Agregar línea</button>
+    <div style="background:#BF360C;border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <span style="color:white;font-weight:800;font-size:14px">TOTAL A TRANSFERIR</span>
+      <span id="gab-total-display" style="color:white;font-weight:900;font-size:18px">$0</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="document.getElementById('gab-modal').style.display='none'" style="flex:1;padding:11px;border-radius:10px;border:2px solid #ddd;background:white;color:#666;font-weight:700;cursor:pointer">Cancelar</button>
+      <button onclick="gabConfirmarPDF()" style="flex:2;padding:11px;border-radius:10px;border:none;background:#BF360C;color:white;font-weight:800;font-size:14px;cursor:pointer">📄 Generar PDF y avisar a Dana</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== FIRMA MODAL ===== -->
 <div class="modal-ov" id="firma-modal" style="display:none">
   <div class="modal-bx">
@@ -648,7 +686,8 @@ html+='<div class="svc-sub">'+s.producto+' &middot; '+svcSub+' &middot; '+fDate(
     html+='<div class="det-sec"><div class="det-tit">💰 Gastos del servicio (cargados por técnicos)</div>';
     var svcGastos=sbGastos.filter(function(g){return String(g.servicio_id)===String(s.id);});
     if(svcGastos.length===0){
-      html+='<p style="font-size:12px;color:#999;text-align:center;padding:10px 0">Sin gastos registrados aún.<br>Los técnicos los cargan desde su app.</p>';
+      var dbgIds=sbGastos.slice(0,5).map(function(g){return g.servicio_id;}).join(', ');
+      html+='<p style="font-size:11px;color:#999;text-align:center;padding:8px 0">Sin gastos registrados aún.<br>Los técnicos los cargan desde su app.<br><span style="font-size:10px;color:#bbb;display:block;margin-top:4px">🔍 svc.id=<b>'+s.id+'</b> · total gastos cargados=<b>'+sbGastos.length+'</b><br>primeros servicio_id: '+dbgIds+'</span></p>';
     }else{
       html+='<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">';
       svcGastos.forEach(function(g){
@@ -784,15 +823,23 @@ html+='<div class="svc-sub">'+s.producto+' &middot; '+svcSub+' &middot; '+fDate(
         '→ Pedirle a Stella que transfiera ese monto.'+
         (diasEx>0?'\n📅 Incluye '+diasEx+' día/s extra de viáticos.':'')+
         hotelInfo+hotelBase;
-      // PDF + WA Stella
-      genOrdenStella(s, {
-        dTot:dTot, km:km, nochesTot:nochesTot, hotelExtra:hotelExtra,
-        diasEx:diasEx, kmExtraSvc:kmExtraSvc,
-        desay2:desay2, merienda2:merienda2, alm2:alm2, cena2:cena2,
-        combustVuelta:combustVuelta, combustExtra:combustExtra,
-        cargasVirt:cargasVirtSvc, extras:extrasSvc,
-        totalTransf:totalTransf, tc:tc, e:e
-      }, msg);
+      // Abrir modal Stella
+      var stellaItems=[];
+      stellaItems.push({lbl:'Desayunos ('+dTot+' días × 2 personas)',val:Math.round(desay2)});
+      stellaItems.push({lbl:'Meriendas ('+dTot+' días × 2 personas)',val:Math.round(merienda2)});
+      stellaItems.push({lbl:'Almuerzos ('+dTot+' días × 2 personas)',val:Math.round(alm2)});
+      if(cena2>0)stellaItems.push({lbl:'Cenas ('+nochesTot+' noche/s × 2 personas)',val:Math.round(cena2)});
+      if(combustVuelta>0)stellaItems.push({lbl:'Combustible vuelta ('+km+' km)',val:Math.round(combustVuelta)});
+      if(combustExtra>0)stellaItems.push({lbl:'Combustible adicional ('+kmExtraSvc+' km extra)',val:Math.round(combustExtra)});
+      if(cargasVirtSvc>0)stellaItems.push({lbl:'Cargas virtuales',val:Math.round(cargasVirtSvc)});
+      if(extrasSvc>0)stellaItems.push({lbl:'Extras / imprevistos',val:Math.round(extrasSvc)});
+      window._stellaSvc=s;
+      window._stellaData={dTot:dTot,km:km,nochesTot:nochesTot,hotelExtra:hotelExtra,diasEx:diasEx,kmExtraSvc:kmExtraSvc,desay2:desay2,merienda2:merienda2,alm2:alm2,cena2:cena2,combustVuelta:combustVuelta,combustExtra:combustExtra,cargasVirt:cargasVirtSvc,extras:extrasSvc,totalTransf:totalTransf,tc:tc,e:e};
+      window._stellaMsg=msg;
+      var fD2=function(f){if(!f)return '—';var p=f.split('-');return p[2]+'/'+p[1]+'/'+p[0];};
+      document.getElementById('stella-modal-sub').textContent=s.cliente+' · '+fD2(s.fecha)+' · '+e.bb+' BB';
+      renderStellaItems(stellaItems);
+      document.getElementById('stella-modal').style.display='flex';
     });
   });
   el.querySelectorAll('[data-jesi]').forEach(function(btn){
@@ -844,16 +891,24 @@ html+='<div class="svc-sub">'+s.producto+' &middot; '+svcSub+' &middot; '+fDate(
       var _gp=parseFloat(cfg.gasoil_precio)||1600;
       var _litrosViaje=km>0?(km*2)/_kmL:0;
       var combustVuelta=Math.round(Math.max(0,_litrosViaje-_tanque)*_gp);
-      var totalTransf=Math.round(desay2+merienda2+alm2+cena2+combustVuelta+combustExtra+cargasVirtSvc+extrasSvc);
-      genOrdenGabriel(s, {
-        e:e, dTot:dTot, km:km, nochesTot:nochesTot, hotelExtra:hotelExtra,
-        diasEx:diasEx, kmExtraSvc:kmExtraSvc,
-        pDesay:pDesay, pMer:pMer, pAlm:pAlm,
-        desay2:desay2, merienda2:merienda2, alm2:alm2, cena2:cena2,
-        combustVuelta:combustVuelta, combustExtra:combustExtra,
-        cargasVirt:cargasVirtSvc, extras:extrasSvc,
-        totalTransf:totalTransf, tc:tc
-      });
+      // Construir lista de ítems editable
+      var items=[];
+      items.push({lbl:'Desayunos',det:dTot+' días × 2 × $'+Math.round(pDesay).toLocaleString('es-AR'),val:Math.round(desay2)});
+      items.push({lbl:'Meriendas',det:dTot+' días × 2 × $'+Math.round(pMer).toLocaleString('es-AR'),val:Math.round(merienda2)});
+      items.push({lbl:'Almuerzos',det:dTot+' días × 2 × $'+Math.round(pAlm).toLocaleString('es-AR'),val:Math.round(alm2)});
+      if(cena2>0)items.push({lbl:'Cenas',det:nochesTot+' noches × 2',val:Math.round(cena2)});
+      if(combustVuelta>0)items.push({lbl:'Combustible vuelta',det:km+' km (supera tanque)',val:Math.round(combustVuelta)});
+      if(combustExtra>0)items.push({lbl:'Combustible extra',det:kmExtraSvc+' km adicionales',val:Math.round(combustExtra)});
+      if(cargasVirtSvc>0)items.push({lbl:'Cargas virtuales',det:'—',val:Math.round(cargasVirtSvc)});
+      if(extrasSvc>0)items.push({lbl:'Extras / imprevistos',det:'—',val:Math.round(extrasSvc)});
+      // Guardar contexto global para el modal
+      window._gabSvc=s;
+      window._gabData={e:e,dTot:dTot,km:km,nochesTot:nochesTot,hotelExtra:hotelExtra,diasEx:diasEx,kmExtraSvc:kmExtraSvc,pDesay:pDesay,pMer:pMer,pAlm:pAlm,desay2:desay2,merienda2:merienda2,alm2:alm2,cena2:cena2,combustVuelta:combustVuelta,combustExtra:combustExtra,cargasVirt:cargasVirtSvc,extras:extrasSvc,tc:tc};
+      // Abrir modal
+      var fD2=function(f){if(!f)return '—';var p=f.split('-');return p[2]+'/'+p[1]+'/'+p[0];};
+      document.getElementById('gab-modal-sub').textContent=s.cliente+' · '+fD2(s.fecha)+' · '+e.bb+' BB';
+      renderGabItems(items);
+      document.getElementById('gab-modal').style.display='flex';
     });
   });
   el.querySelectorAll('[data-idx]').forEach(function(sel){
@@ -1515,6 +1570,59 @@ function genComprobanteViaticos(s, datos){
   var w=window.open(_u2,'_blank');if(!w){toast('⚠️ Habilitar popups');return;}setTimeout(function(){URL.revokeObjectURL(_u2);},60000);
 }
 
+// ===== MODAL TRANSFERENCIA STELLA =====
+function renderStellaItems(items){
+  window._stellaItems=items.map(function(it){return {lbl:it.lbl,val:it.val};});
+  var wrap=document.getElementById('stella-items-wrap');
+  var html='<div style="border:1px solid #eee;border-radius:10px;overflow:hidden">';
+  html+='<div style="display:grid;grid-template-columns:1fr auto;background:#1A237E;padding:8px 10px;gap:8px">';
+  html+='<span style="color:white;font-size:11px;font-weight:700">CONCEPTO</span>';
+  html+='<span style="color:white;font-size:11px;font-weight:700;text-align:right">MONTO</span>';
+  html+='</div>';
+  window._stellaItems.forEach(function(it,i){
+    var bg=i%2===0?'#fff':'#f8f9ff';
+    html+='<div style="display:grid;grid-template-columns:1fr auto;align-items:center;background:'+bg+';padding:6px 10px;gap:8px;border-bottom:1px solid #eef">';
+    html+='<input data-st-lbl="'+i+'" value="'+it.lbl+'" oninput="window._stellaItems['+i+'].lbl=this.value" style="font-size:12px;border:none;background:transparent;color:#333;width:100%;padding:2px">';
+    html+='<div style="display:flex;align-items:center;gap:4px">';
+    html+='<span style="font-size:11px;color:#1A237E;font-weight:700">$</span>';
+    html+='<input data-st-val="'+i+'" value="'+Math.round(it.val)+'" oninput="window._stellaItems['+i+'].val=parseFloat(this.value)||0;recalcStellaTotal()" style="width:100px;font-size:12px;font-weight:700;border:1px solid #ddd;border-radius:6px;padding:3px 5px;text-align:right;color:#1A237E">';
+    html+='<button onclick="removeStellaLine('+i+')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;padding:0 2px" title="Eliminar">✕</button>';
+    html+='</div></div>';
+  });
+  html+='</div>';
+  wrap.innerHTML=html;
+  recalcStellaTotal();
+}
+function recalcStellaTotal(){
+  var total=(window._stellaItems||[]).reduce(function(a,it){return a+(parseFloat(it.val)||0);},0);
+  document.getElementById('stella-total-display').textContent='$'+Math.round(total).toLocaleString('es-AR');
+}
+function addStellaLine(){
+  var items=window._stellaItems||[];
+  items.push({lbl:'Nuevo concepto',val:0});
+  renderStellaItems(items);
+}
+function removeStellaLine(idx){
+  var items=window._stellaItems||[];
+  items.splice(idx,1);
+  renderStellaItems(items);
+}
+function stellaConfirmarPDF(){
+  var s=window._stellaSvc;
+  var d=window._stellaData;
+  var msg=window._stellaMsg;
+  if(!s||!d)return;
+  var items=window._stellaItems||[];
+  var totalTransf=Math.round(items.reduce(function(a,it){return a+(parseFloat(it.val)||0);},0));
+  document.getElementById('stella-modal').style.display='none';
+  // Guardar monto real transferido en Supabase
+  sbPatch('servicios','id',s.id,{viaticos:totalTransf}).then(function(){
+    var idx=servicios.findIndex(function(x){return x.id===s.id;});
+    if(idx>=0){servicios[idx].viaticos=totalTransf;lsSet('bba_s',JSON.stringify(servicios));}
+  });
+  genOrdenStella(s, Object.assign({},d,{totalTransf:totalTransf,itemsOverride:items}), msg);
+}
+
 function genOrdenStella(s, d, waMsg){
   if(!window.jspdf){toast('⚠️ Cargando PDF, intentá de nuevo en 3 seg');return;}
   var fN=function(n){return '$'+Math.round(n).toLocaleString('es-AR');};
@@ -1541,16 +1649,18 @@ function genOrdenStella(s, d, waMsg){
   doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');
   doc.text('Concepto',17,60.5);doc.text('Monto',193,60.5,{align:'right'});
   // Filas
-  var items=[
+  var items=d.itemsOverride||[
     {lbl:'Desayunos ('+d.dTot+' días × 2 personas)',val:d.desay2},
     {lbl:'Meriendas ('+d.dTot+' días × 2 personas)',val:d.merienda2},
     {lbl:'Almuerzos ('+d.dTot+' días × 2 personas)',val:d.alm2}
   ];
-  if(d.cena2>0)items.push({lbl:'Cenas ('+d.nochesTot+' noche/s × 2 personas)',val:d.cena2});
-  if(d.combustVuelta>0)items.push({lbl:'Combustible vuelta ('+d.km+' km)',val:d.combustVuelta});
-  if(d.combustExtra>0)items.push({lbl:'Combustible adicional ('+d.kmExtraSvc+' km extra)',val:d.combustExtra});
-  if(d.cargasVirt>0)items.push({lbl:'Cargas virtuales',val:d.cargasVirt});
-  if(d.extras>0)items.push({lbl:'Extras / imprevistos',val:d.extras});
+  if(!d.itemsOverride){
+    if(d.cena2>0)items.push({lbl:'Cenas ('+d.nochesTot+' noche/s × 2 personas)',val:d.cena2});
+    if(d.combustVuelta>0)items.push({lbl:'Combustible vuelta ('+d.km+' km)',val:d.combustVuelta});
+    if(d.combustExtra>0)items.push({lbl:'Combustible adicional ('+d.kmExtraSvc+' km extra)',val:d.combustExtra});
+    if(d.cargasVirt>0)items.push({lbl:'Cargas virtuales',val:d.cargasVirt});
+    if(d.extras>0)items.push({lbl:'Extras / imprevistos',val:d.extras});
+  }
   var y=63;
   items.forEach(function(it,i){
     doc.setFillColor(i%2===0?248:255,i%2===0?248:255,i%2===0?255:255);doc.rect(14,y,182,8,'F');
@@ -1583,6 +1693,60 @@ function genOrdenStella(s, d, waMsg){
   }
 }
 
+// ===== MODAL VIÁTICOS GABRIEL =====
+function renderGabItems(items){
+  window._gabItems=items.map(function(it){return {lbl:it.lbl,det:it.det,val:it.val};});
+  var wrap=document.getElementById('gab-items-wrap');
+  var html='<div style="border:1px solid #eee;border-radius:10px;overflow:hidden">';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr auto;background:#BF360C;padding:8px 10px;gap:8px">';
+  html+='<span style="color:white;font-size:11px;font-weight:700">CONCEPTO</span>';
+  html+='<span style="color:white;font-size:11px;font-weight:700">DETALLE</span>';
+  html+='<span style="color:white;font-size:11px;font-weight:700;text-align:right">MONTO</span>';
+  html+='</div>';
+  window._gabItems.forEach(function(it,i){
+    var bg=i%2===0?'#fff':'#fff8f5';
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr auto;align-items:center;background:'+bg+';padding:6px 10px;gap:8px;border-bottom:1px solid #f0e8e5">';
+    html+='<input data-gab-lbl="'+i+'" value="'+it.lbl+'" oninput="window._gabItems['+i+'].lbl=this.value" style="font-size:12px;font-weight:700;border:none;background:transparent;color:#333;width:100%;padding:2px">';
+    html+='<input data-gab-det="'+i+'" value="'+it.det+'" oninput="window._gabItems['+i+'].det=this.value" style="font-size:11px;border:none;background:transparent;color:#888;width:100%;padding:2px">';
+    html+='<div style="display:flex;align-items:center;gap:4px">';
+    html+='<span style="font-size:11px;color:#BF360C;font-weight:700">$</span>';
+    html+='<input data-gab-val="'+i+'" value="'+Math.round(it.val)+'" oninput="window._gabItems['+i+'].val=parseFloat(this.value)||0;recalcGabTotal()" style="width:90px;font-size:12px;font-weight:700;border:1px solid #ddd;border-radius:6px;padding:3px 5px;text-align:right;color:#BF360C">';
+    html+='<button onclick="removeGabLine('+i+')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;padding:0 2px" title="Eliminar">✕</button>';
+    html+='</div></div>';
+  });
+  html+='</div>';
+  wrap.innerHTML=html;
+  recalcGabTotal();
+}
+function recalcGabTotal(){
+  var total=(window._gabItems||[]).reduce(function(a,it){return a+(parseFloat(it.val)||0);},0);
+  document.getElementById('gab-total-display').textContent='$'+Math.round(total).toLocaleString('es-AR');
+}
+function addGabLine(){
+  var items=window._gabItems||[];
+  items.push({lbl:'Nuevo concepto',det:'—',val:0});
+  renderGabItems(items);
+}
+function removeGabLine(idx){
+  var items=window._gabItems||[];
+  items.splice(idx,1);
+  renderGabItems(items);
+}
+function gabConfirmarPDF(){
+  var s=window._gabSvc;
+  var d=window._gabData;
+  if(!s||!d)return;
+  var items=window._gabItems||[];
+  var totalTransf=Math.round(items.reduce(function(a,it){return a+(parseFloat(it.val)||0);},0));
+  document.getElementById('gab-modal').style.display='none';
+  // Guardar monto real transferido en Supabase
+  sbPatch('servicios','id',s.id,{viaticos:totalTransf}).then(function(){
+    var idx=servicios.findIndex(function(x){return x.id===s.id;});
+    if(idx>=0){servicios[idx].viaticos=totalTransf;lsSet('bba_s',JSON.stringify(servicios));}
+  });
+  genOrdenGabriel(s, Object.assign({},d,{totalTransf:totalTransf,itemsOverride:items}));
+}
+
 function genOrdenGabriel(s, d){
   if(!window.jspdf){toast('⚠️ Cargando PDF, intentá de nuevo en 3 seg');return;}
   var fN=function(n){return '$'+Math.round(n).toLocaleString('es-AR');};
@@ -1611,16 +1775,18 @@ function genOrdenGabriel(s, d){
   doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');
   doc.text('Rubro',17,66.5);doc.text('Detalle',100,66.5);doc.text('Monto',193,66.5,{align:'right'});
   // Filas
-  var items=[
+  var items=d.itemsOverride||[
     {lbl:'Desayunos',det:d.dTot+' días × 2 × $'+Math.round(d.pDesay||0).toLocaleString('es-AR'),val:d.desay2},
     {lbl:'Meriendas',det:d.dTot+' días × 2 × $'+Math.round(d.pMer||0).toLocaleString('es-AR'),val:d.merienda2},
     {lbl:'Almuerzos',det:d.dTot+' días × 2 × $'+Math.round(d.pAlm||0).toLocaleString('es-AR'),val:d.alm2}
   ];
-  if(d.cena2>0)items.push({lbl:'Cenas',det:d.nochesTot+' noche/s × 2',val:d.cena2});
-  if(d.combustVuelta>0)items.push({lbl:'Combustible vuelta',det:d.km+' km (supera tanque)',val:d.combustVuelta});
-  if(d.combustExtra>0)items.push({lbl:'Combustible extra',det:d.kmExtraSvc+' km adicionales',val:d.combustExtra});
-  if(d.cargasVirt>0)items.push({lbl:'Cargas virtuales',det:'—',val:d.cargasVirt});
-  if(d.extras>0)items.push({lbl:'Extras / imprevistos',det:'—',val:d.extras});
+  if(!d.itemsOverride){
+    if(d.cena2>0)items.push({lbl:'Cenas',det:d.nochesTot+' noche/s × 2',val:d.cena2});
+    if(d.combustVuelta>0)items.push({lbl:'Combustible vuelta',det:d.km+' km (supera tanque)',val:d.combustVuelta});
+    if(d.combustExtra>0)items.push({lbl:'Combustible extra',det:d.kmExtraSvc+' km adicionales',val:d.combustExtra});
+    if(d.cargasVirt>0)items.push({lbl:'Cargas virtuales',det:'—',val:d.cargasVirt});
+    if(d.extras>0)items.push({lbl:'Extras / imprevistos',det:'—',val:d.extras});
+  }
   var y=69;
   items.forEach(function(it,i){
     doc.setFillColor(i%2===0?255:255,i%2===0?243:255,i%2===0?224:255);doc.rect(14,y,182,8,'F');
