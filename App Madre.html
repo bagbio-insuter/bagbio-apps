@@ -503,6 +503,24 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
     <div class="field"><label>N° de Receta</label>
       <div class="sel-wrap"><select id="f-rec"><option value="">— Seleccionar —</option></select></div></div>
     <div class="field"><label>Km en destino</label><input type="number" id="f-kmd" value="0" min="0"></div>
+    <div class="field"><label>🚀 ¿Desde dónde salen?</label>
+      <div class="sel-wrap"><select id="f-origen" onchange="onOrigenChange()">
+        <option value="dean">Dean Funes (base)</option>
+        <option value="cliente">Desde cliente anterior</option>
+      </select></div></div>
+    <div id="f-origen-wrap" style="display:none;border-left:3px solid #1565C0;padding-left:10px;margin-left:4px">
+      <div class="field"><label>Cliente de origen</label>
+        <div class="sel-wrap"><select id="f-origen-cli" onchange="onOrigenCliChange()">
+          <option value="">Seleccioná...</option>
+        </select></div></div>
+      <div class="field"><label>Km origen → destino <small style="color:#888">(editable)</small></label>
+        <input type="number" id="f-km-origen" value="0" min="0" placeholder="0"></div>
+      <div class="field"><label>🏨 Primera noche</label>
+        <div class="sel-wrap"><select id="f-hotel-ant">
+          <option value="no">No cubierta — incluir en viáticos</option>
+          <option value="si">Cubierta por servicio anterior — no incluir</option>
+        </select></div></div>
+    </div>
     <div class="field"><label>Estado</label>
       <div class="sel-wrap"><select id="f-est">
         <option>Pendiente</option><option>Confirmado</option><option>En curso</option><option>Completado</option>
@@ -858,6 +876,33 @@ n('f-cliente').addEventListener('change',function(){
   if(cliKm&&(cliKm.km||KM[cl2])){n('f-kmd').value=cliKm.km||KM[cl2]||0;}
 });
 
+// Origen del viaje
+function onOrigenChange(){
+  var v=n('f-origen').value;
+  var w=n('f-origen-wrap');
+  if(w)w.style.display=v==='cliente'?'block':'none';
+  if(v==='cliente'){
+    var sel=n('f-origen-cli');
+    if(sel){
+      sel.innerHTML='<option value="">Seleccioná...</option>';
+      CLIENTES.forEach(function(c){
+        var kmC=c.km||KM[c.n]||0;
+        var opt=document.createElement('option');
+        opt.value=c.n;
+        opt.textContent=c.n+(kmC?' ('+kmC+' km de DF)':'');
+        sel.appendChild(opt);
+      });
+    }
+  }
+}
+function onOrigenCliChange(){
+  var oriN=n('f-origen-cli').value;
+  var destN=n('f-cliente')?n('f-cliente').value:'';
+  var kmOri=(CLIENTES.find(function(c){return c.n===oriN;})||{}).km||KM[oriN]||0;
+  var kmDest=(CLIENTES.find(function(c){return c.n===destN;})||{}).km||KM[destN]||0;
+  var est=Math.abs(kmOri-kmDest);
+  if(n('f-km-origen'))n('f-km-origen').value=est||0;
+}
 // Toggle 2nd product
 n('btn-add-prod2').addEventListener('click',function(){
   n('prod2-block').style.display='block';
@@ -896,6 +941,13 @@ n('btn-gen-msg').addEventListener('click',function(){
   var hotelCosto=hotelExtra>0?(hotelExtra*(parseFloat(cfg.hotel)||60000)):0;
   var hotelPay=n('f-hotel-pay')?n('f-hotel-pay').value:'admin';
   var hotelEnViat=hotelExtra>0&&hotelPay==='tecnicos';
+  // Origen del viaje
+  var origenTipo=n('f-origen')?n('f-origen').value:'dean';
+  var origenCli=n('f-origen-cli')?n('f-origen-cli').value:'';
+  var kmOrigen=origenTipo==='cliente'?(parseInt(n('f-km-origen').value)||0):km;
+  var hotelAnt=origenTipo==='cliente'&&n('f-hotel-ant')?n('f-hotel-ant').value:'no';
+  // Noches efectivas: si primera noche cubierta por servicio anterior, restar 1
+  var nochesEfect=Math.max(Math.max(dViat-1,0)+hotelExtra-(hotelAnt==='si'?1:0),0);
   var hotelMsg=hotelExtra>0?(hotelEnViat?'\n\n🏨 Hotel: '+hotelExtra+' noche'+(hotelExtra>1?'s':'')+' × 1 habitación — incluidas en viáticos ($'+fNum(hotelCosto)+') — técnicos pagan.':'\n\n🏨 RESERVAR HOTEL: '+hotelExtra+' noche'+(hotelExtra>1?'s':'')+' — admin reserva y paga directo.'):'';
 
   // Detectar servicio consecutivo al día siguiente
@@ -913,19 +965,23 @@ n('btn-gen-msg').addEventListener('click',function(){
       hotelAlert='\n\n🏨 RESERVAR HOTEL: noche del '+nocheStr+' — al día siguiente hay servicio en '+svcConsec.map(function(s){return s.cliente;}).join(', ')+'.';
     }
   }
-        var nochesTot=Math.max(dViat-1,0)+hotelExtra; var v=viat(km,dViat,kmd,nochesTot); var vd=viatDetalle(dViat,nochesTot);
+        var v=viat(km,dViat,kmd,nochesEfect); var vd=viatDetalle(dViat,nochesEfect);
   var kmExtra=parseInt(n('f-km-extra').value)||0;
   var pKmExtra=parseFloat(cfg.km_extra_precio)||250;
   var combustExtra=kmExtra*pKmExtra;
   var _kmL=parseFloat(cfg.km_litro)||7.5, _tanque=parseFloat(cfg.tanque_litros)||80, _gp=parseFloat(cfg.gasoil_precio)||1600;
-  var _litrosViaje=km>0?(km*2)/_kmL:0;
+  // Km totales: si viene de otro cliente → km_origen + km_vuelta; si sale de DF → km × 2
+  var kmTotalViaje=origenTipo==='cliente'?(kmOrigen+km):(km*2);
+  var _litrosViaje=kmTotalViaje>0?kmTotalViaje/_kmL:0;
   var _litrosExtra=Math.max(0,_litrosViaje-_tanque);
   var combustVuelta=Math.round(_litrosExtra*_gp);
   var cargasVirt=parseFloat(n('f-cargas-virt').value)||0;
   var extrasImp=parseFloat(n('f-extras').value)||0;
   var totalFinal=vd.total+combustVuelta+combustExtra+cargasVirt+extrasImp+(hotelEnViat?hotelCosto:0);
-  var vLines='  · Desayunos ('+dViat+' días × 2): $'+fNum(vd.desay)+'\n  · Meriendas ('+dViat+' días × 2): $'+fNum(vd.mer)+'\n  · Almuerzos ('+dViat+' días × 2): $'+fNum(vd.alm)+(vd.cena>0?'\n  · Cenas ('+vd.noches+' noche/s × 2): $'+fNum(vd.cena):'')+(combustVuelta>0?'\n  · Combustible vuelta ('+km+' km): $'+fNum(combustVuelta):'')+(combustExtra>0?'\n  · Combustible extra ('+kmExtra+' km): $'+fNum(combustExtra):'')+(cargasVirt>0?'\n  · Cargas virtuales: $'+fNum(cargasVirt):'')+(extrasImp>0?'\n  · Extras/imprevistos: $'+fNum(extrasImp):'')+'\n  ──────────────\n  TOTAL A TRANSFERIR: $'+fNum(totalFinal);
-  var msgD='✅ SERVICIO CONFIRMADO\nCliente: '+cl2+'\nProducto: '+prodLine+' — '+tipoLbl+'\nBig Bags totales: '+bbTotal+' ('+tonsTotal+' Tn)\nReceta N°: '+(rec||'—')+(rec?' ('+recLbl+')':'')+' | Duración: '+d+' día/s'+(fecha?' | Fecha: '+fDate(fecha):'')+' \nTécnicos: Alcides Fabbio y Gabriel Rodriguez\n\n💰 Viáticos a transferir a Gabriel:\n'+vLines+'\n→ Pedirle a Stella que transfiera ese monto.'+(diasExtra>0?'\n📅 Incluye '+diasExtra+' día/s extra de viáticos.':'')+hotelMsg+hotelAlert;
+  var origenLinea=origenTipo==='cliente'&&origenCli?'\n🚀 Sale desde: '+origenCli+' → '+cl2+' ('+kmOrigen+' km)':'';
+  var combustLinea=combustVuelta>0?'\n  · Combustible viaje ('+kmTotalViaje+' km tot.): $'+fNum(combustVuelta):combustVuelta===0&&origenTipo==='cliente'?'\n  · Combustible cubierto por tanque lleno':'';
+  var vLines='  · Desayunos ('+dViat+' días × 2): $'+fNum(vd.desay)+'\n  · Meriendas ('+dViat+' días × 2): $'+fNum(vd.mer)+'\n  · Almuerzos ('+dViat+' días × 2): $'+fNum(vd.alm)+(vd.cena>0?'\n  · Cenas ('+vd.noches+' noche/s × 2): $'+fNum(vd.cena):'')+combustLinea+(combustExtra>0?'\n  · Combustible extra ('+kmExtra+' km): $'+fNum(combustExtra):'')+(cargasVirt>0?'\n  · Cargas virtuales: $'+fNum(cargasVirt):'')+(extrasImp>0?'\n  · Extras/imprevistos: $'+fNum(extrasImp):'')+'\n  ──────────────\n  TOTAL A TRANSFERIR: $'+fNum(totalFinal);
+  var msgD='✅ SERVICIO CONFIRMADO\nCliente: '+cl2+'\nProducto: '+prodLine+' — '+tipoLbl+'\nBig Bags totales: '+bbTotal+' ('+tonsTotal+' Tn)\nReceta N°: '+(rec||'—')+(rec?' ('+recLbl+')':'')+' | Duración: '+d+' día/s'+(fecha?' | Fecha: '+fDate(fecha):'')+origenLinea+'\nTécnicos: Alcides Fabbio y Gabriel Rodriguez\n\n💰 Viáticos a transferir a Gabriel:\n'+vLines+'\n→ Pedirle a Stella que transfiera ese monto.'+(diasExtra>0?'\n📅 Incluye '+diasExtra+' día/s extra de viáticos.':'')+(hotelAnt==='si'?'\n🏨 Primera noche cubierta por servicio anterior.':'')+hotelMsg+hotelAlert;
   n('txt-dana').textContent=msgD;
   n('msg-dana').style.display='block';
   var litN2=bbTotal*(recObj?parseFloat(recObj.n2)||800:800);
@@ -976,7 +1032,11 @@ n('btn-save-svc').addEventListener('click',function(){
   var linerGas=n('f-liner-gas')?n('f-liner-gas').value:'';
   var linerVacio=n('f-liner-vacio')?n('f-liner-vacio').value:'no';
   var _hotelPaySave=n('f-hotel-pay')?n('f-hotel-pay').value:'admin';
-  var s={id:'SRV-'+Date.now(),fecha:n('f-fecha').value,cliente:cl2,producto:prodDisplay,tipo:tipo,bb:bb,kg:parseInt(n('f-kg').value)||1200,receta:parseInt(n('f-rec').value)||0,kmdest:parseInt(n('f-kmd').value)||0,estado:n('f-est').value,obs:n('f-obs').value,hotel:hotelExtra,hotel_pay:_hotelPaySave,producto2:pr2s,bb2:bb2s,kg2:kg2s,dias_extra:diasExtra,km_extra:kmExtraV,cargas_virt:cargasVirtV,extras:extrasV,viat_total:viatTotal,liner:linerCant,liner_tipo:linerTipo,liner_gas:linerGas,liner_vacio:linerVacio};
+  var _origenSave=n('f-origen')?n('f-origen').value:'dean';
+  var _origenCliSave=n('f-origen-cli')?n('f-origen-cli').value:'';
+  var _kmOrigenSave=_origenSave==='cliente'?(parseInt(n('f-km-origen').value)||0):0;
+  var _hotelAntSave=_origenSave==='cliente'&&n('f-hotel-ant')?n('f-hotel-ant').value==='si':false;
+  var s={id:'SRV-'+Date.now(),fecha:n('f-fecha').value,cliente:cl2,producto:prodDisplay,tipo:tipo,bb:bb,kg:parseInt(n('f-kg').value)||1200,receta:parseInt(n('f-rec').value)||0,kmdest:parseInt(n('f-kmd').value)||0,estado:n('f-est').value,obs:n('f-obs').value,hotel:hotelExtra,hotel_pay:_hotelPaySave,origen:_origenSave,origen_cli:_origenCliSave,km_origen:_kmOrigenSave,hotel_ant:_hotelAntSave,producto2:pr2s,bb2:bb2s,kg2:kg2s,dias_extra:diasExtra,km_extra:kmExtraV,cargas_virt:cargasVirtV,extras:extrasV,viat_total:viatTotal,liner:linerCant,liner_tipo:linerTipo,liner_gas:linerGas,liner_vacio:linerVacio};
   servicios.unshift(s);lsSet('bb_s',JSON.stringify(servicios));
   postAPI('saveServicio',s);
   renderAgenda();closeModal('modal-svc');
@@ -1665,7 +1725,7 @@ function pdfWaDana(){
     return '<p style="margin:3px 0;font-size:12px">'+safe+'</p>';
   }).join('');
   var html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Dana — Bag Bio</title>'+
-    '<style>@page{size:A4;margin:15mm}body{font-family:\'Segoe UI\',Arial,sans-serif;margin:0}'+
+    '<style>@page{size:A4;margin:15mm}body{font-family:\'Segoe UI Emoji\',\'Segoe UI\',\'Apple Color Emoji\',\'Noto Color Emoji\',Arial,sans-serif;margin:0}'+
     '.hdr{background:#1b5e20;color:white;padding:14px 20px;display:flex;align-items:center;gap:14px;margin-bottom:20px}'+
     '.hdr h1{margin:0;font-size:16px}.hdr p{margin:2px 0;font-size:10px;opacity:.85}'+
     '.badge{display:inline-block;background:#e8f5e9;color:#1b5e20;border:1.5px solid #1b5e20;border-radius:6px;padding:4px 14px;font-weight:700;font-size:11px;margin-bottom:14px}'+
