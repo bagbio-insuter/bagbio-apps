@@ -776,6 +776,8 @@ html+='<div class="svc-sub">'+s.producto+' &middot; '+svcSub+' &middot; '+fDate(
       var diasEx=parseInt(s.dias_extra)||0;
       var dTot=e.d+diasEx;
       var hotelExtra=parseInt(s.hotel)||0;
+      var hotelPay=s.hotel_pay||'admin';
+      var hotelCosto=hotelExtra>0&&hotelPay==='tecnicos'?(hotelExtra*(parseFloat(cfg.hotel)||60000)):0;
       var nochesTot=Math.max(dTot-1,0)+hotelExtra;
       var kmExtraSvc=parseInt(s.km_extra)||0;
       var cargasVirtSvc=parseFloat(s.cargas_virt)||0;
@@ -799,18 +801,19 @@ html+='<div class="svc-sub">'+s.producto+' &middot; '+svcSub+' &middot; '+fDate(
       var _gp=parseFloat(cfg.gasoil_precio)||1600;
       var _litrosViaje=km>0?(km*2)/_kmL:0;
       var combustVuelta=Math.round(Math.max(0,_litrosViaje-_tanque)*_gp);
-      var totalTransf=Math.round(desay2+merienda2+alm2+cena2+combustVuelta+combustExtra+cargasVirtSvc+extrasSvc);
+      var totalTransf=Math.round(desay2+merienda2+alm2+cena2+combustVuelta+combustExtra+cargasVirtSvc+extrasSvc+hotelCosto);
       // Breakdown idéntico al mensaje de App Madre
       var vLines='  · Desayunos ('+dTot+' días × 2): $'+fNum(desay2)+'\n'+
         '  · Meriendas ('+dTot+' días × 2): $'+fNum(merienda2)+'\n'+
         '  · Almuerzos ('+dTot+' días × 2): $'+fNum(alm2)+
         (cena2>0?'\n  · Cenas ('+nochesTot+' noche/s × 2): $'+fNum(cena2):'')+
+        (hotelCosto>0?'\n  · Hotel ('+hotelExtra+' noche/s): $'+fNum(hotelCosto):'')+
         (combustVuelta>0?'\n  · Combustible vuelta ('+km+' km): $'+fNum(combustVuelta):'')+
         (combustExtra>0?'\n  · Combustible extra ('+kmExtraSvc+' km): $'+fNum(combustExtra):'')+
         (cargasVirtSvc>0?'\n  · Cargas virtuales: $'+fNum(cargasVirtSvc):'')+
         (extrasSvc>0?'\n  · Extras/imprevistos: $'+fNum(extrasSvc):'')+
         '\n  ──────────────\n  TOTAL A TRANSFERIR: $'+fNum(totalTransf);
-      var hotelInfo=hotelExtra>0?'\n🏨 Hotel: '+hotelExtra+' noche/s adicionale/s — reservar desde admin.':'';
+      var hotelInfo=hotelExtra>0?(hotelPay==='tecnicos'?'\n🏨 Hotel: '+hotelExtra+' noche/s incluida/s en viáticos ($'+fNum(hotelCosto)+').':'\n🏨 RESERVAR HOTEL: '+hotelExtra+' noche/s — admin paga directo.'):'';
       var hotelBase=(Math.max(dTot-1,0)>0&&!hotelExtra)?'\n🏨 Hotel: '+Math.max(dTot-1,0)+' noche/s — verificar reserva.':'';
       var tipoLbl=s.tipo==='liner'?'Liner Contenedor':s.tipo==='sellado'?'Sellado':'Envasado';
       var msg='✅ SERVICIO CONFIRMADO\n'+
@@ -833,6 +836,7 @@ html+='<div class="svc-sub">'+s.producto+' &middot; '+svcSub+' &middot; '+fDate(
       if(combustExtra>0)stellaItems.push({lbl:'Combustible adicional ('+kmExtraSvc+' km extra)',val:Math.round(combustExtra)});
       if(cargasVirtSvc>0)stellaItems.push({lbl:'Cargas virtuales',val:Math.round(cargasVirtSvc)});
       if(extrasSvc>0)stellaItems.push({lbl:'Extras / imprevistos',val:Math.round(extrasSvc)});
+      if(hotelCosto>0)stellaItems.push({lbl:'Hotel ('+hotelExtra+' noche/s × 1 habitación)',val:Math.round(hotelCosto)});
       window._stellaSvc=s;
       window._stellaData={dTot:dTot,km:km,nochesTot:nochesTot,hotelExtra:hotelExtra,diasEx:diasEx,kmExtraSvc:kmExtraSvc,desay2:desay2,merienda2:merienda2,alm2:alm2,cena2:cena2,combustVuelta:combustVuelta,combustExtra:combustExtra,cargasVirt:cargasVirtSvc,extras:extrasSvc,totalTransf:totalTransf,tc:tc,e:e};
       window._stellaMsg=msg;
@@ -871,6 +875,8 @@ html+='<div class="svc-sub">'+s.producto+' &middot; '+svcSub+' &middot; '+fDate(
       var diasEx=parseInt(s.dias_extra)||0;
       var dTot=e.d+diasEx;
       var hotelExtra=parseInt(s.hotel)||0;
+      var hotelPayG=s.hotel_pay||'admin';
+      var hotelCostoG=hotelExtra>0&&hotelPayG==='tecnicos'?(hotelExtra*(parseFloat(cfg.hotel)||60000)):0;
       var nochesTot=Math.max(dTot-1,0)+hotelExtra;
       var kmExtraSvc=parseInt(s.km_extra)||0;
       var cargasVirtSvc=parseFloat(s.cargas_virt)||0;
@@ -897,6 +903,7 @@ html+='<div class="svc-sub">'+s.producto+' &middot; '+svcSub+' &middot; '+fDate(
       items.push({lbl:'Meriendas',det:dTot+' días × 2 × $'+Math.round(pMer).toLocaleString('es-AR'),val:Math.round(merienda2)});
       items.push({lbl:'Almuerzos',det:dTot+' días × 2 × $'+Math.round(pAlm).toLocaleString('es-AR'),val:Math.round(alm2)});
       if(cena2>0)items.push({lbl:'Cenas',det:nochesTot+' noches × 2',val:Math.round(cena2)});
+      if(hotelCostoG>0)items.push({lbl:'Hotel',det:hotelExtra+' noche/s × 1 habitación',val:Math.round(hotelCostoG)});
       if(combustVuelta>0)items.push({lbl:'Combustible vuelta',det:km+' km (supera tanque)',val:Math.round(combustVuelta)});
       if(combustExtra>0)items.push({lbl:'Combustible extra',det:kmExtraSvc+' km adicionales',val:Math.round(combustExtra)});
       if(cargasVirtSvc>0)items.push({lbl:'Cargas virtuales',det:'—',val:Math.round(cargasVirtSvc)});

@@ -507,7 +507,12 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
       <div class="sel-wrap"><select id="f-est">
         <option>Pendiente</option><option>Confirmado</option><option>En curso</option><option>Completado</option>
       </select></div></div>
-    <div class="field"><label>🏨 Noches de hotel extra</label><input type="number" id="f-hotel" value="0" min="0" placeholder="0"></div>
+    <div class="field"><label>🏨 Noches de hotel extra</label><input type="number" id="f-hotel" value="0" min="0" placeholder="0" oninput="var w=document.getElementById('f-hotel-pay-wrap');if(w)w.style.display=parseInt(this.value)>0?'block':'none';"></div>
+    <div class="field" id="f-hotel-pay-wrap" style="display:none"><label>¿Quién paga el hotel?</label>
+      <div class="sel-wrap"><select id="f-hotel-pay">
+        <option value="admin">Admin reserva y paga (no va a viáticos)</option>
+        <option value="tecnicos">Técnicos pagan (incluir en viáticos × 2)</option>
+      </select></div></div>
     <div class="field"><label>📅 Días extra (viáticos)</label><input type="number" id="f-dias-extra" value="0" min="0" placeholder="0"></div>
     <div class="field"><label>🚐 Km movimientos locales</label><input type="number" id="f-km-extra" value="0" min="0" placeholder="0"></div>
     <div class="field"><label>📱 Cargas virtuales ($)</label><input type="number" id="f-cargas-virt" value="0" min="0" placeholder="0"></div>
@@ -888,8 +893,11 @@ n('btn-gen-msg').addEventListener('click',function(){
   var hotelExtra=parseInt(n('f-hotel').value)||0;
   var diasExtra=parseInt(n('f-dias-extra').value)||0;
   var dViat=d+diasExtra; // días para calcular viáticos (puede incluir días extra de viaje/imprevistos)
-  var hotelCosto=hotelExtra>0?(hotelExtra*2*(parseFloat(cfg.hotel)||60000)):0;
-  var hotelMsg=hotelExtra>0?'\n\n🏨 RESERVAR HOTEL: '+hotelExtra+' noche'+(hotelExtra>1?'s':'')+' extra para los técnicos (coordinar con administración).':'';
+  var hotelCosto=hotelExtra>0?(hotelExtra*(parseFloat(cfg.hotel)||60000)):0;
+  var hotelPay=n('f-hotel-pay')?n('f-hotel-pay').value:'admin';
+  var hotelEnViat=hotelExtra>0&&hotelPay==='tecnicos';
+  var hotelMsg=hotelExtra>0?(hotelEnViat?'\n\n🏨 Hotel: '+hotelExtra+' noche'+(hotelExtra>1?'s':'')+' × 1 habitación — incluidas en viáticos ($'+fNum(hotelCosto)+') — técnicos pagan.':'\n\n🏨 RESERVAR HOTEL: '+hotelExtra+' noche'+(hotelExtra>1?'s':'')+' — admin reserva y paga directo.'):'';
+
   // Detectar servicio consecutivo al día siguiente
   var hotelAlert='';
   if(fecha){
@@ -915,7 +923,7 @@ n('btn-gen-msg').addEventListener('click',function(){
   var combustVuelta=Math.round(_litrosExtra*_gp);
   var cargasVirt=parseFloat(n('f-cargas-virt').value)||0;
   var extrasImp=parseFloat(n('f-extras').value)||0;
-  var totalFinal=vd.total+combustVuelta+combustExtra+cargasVirt+extrasImp;
+  var totalFinal=vd.total+combustVuelta+combustExtra+cargasVirt+extrasImp+(hotelEnViat?hotelCosto:0);
   var vLines='  · Desayunos ('+dViat+' días × 2): $'+fNum(vd.desay)+'\n  · Meriendas ('+dViat+' días × 2): $'+fNum(vd.mer)+'\n  · Almuerzos ('+dViat+' días × 2): $'+fNum(vd.alm)+(vd.cena>0?'\n  · Cenas ('+vd.noches+' noche/s × 2): $'+fNum(vd.cena):'')+(combustVuelta>0?'\n  · Combustible vuelta ('+km+' km): $'+fNum(combustVuelta):'')+(combustExtra>0?'\n  · Combustible extra ('+kmExtra+' km): $'+fNum(combustExtra):'')+(cargasVirt>0?'\n  · Cargas virtuales: $'+fNum(cargasVirt):'')+(extrasImp>0?'\n  · Extras/imprevistos: $'+fNum(extrasImp):'')+'\n  ──────────────\n  TOTAL A TRANSFERIR: $'+fNum(totalFinal);
   var msgD='✅ SERVICIO CONFIRMADO\nCliente: '+cl2+'\nProducto: '+prodLine+' — '+tipoLbl+'\nBig Bags totales: '+bbTotal+' ('+tonsTotal+' Tn)\nReceta N°: '+(rec||'—')+(rec?' ('+recLbl+')':'')+' | Duración: '+d+' día/s'+(fecha?' | Fecha: '+fDate(fecha):'')+' \nTécnicos: Alcides Fabbio y Gabriel Rodriguez\n\n💰 Viáticos a transferir a Gabriel:\n'+vLines+'\n→ Pedirle a Stella que transfiera ese monto.'+(diasExtra>0?'\n📅 Incluye '+diasExtra+' día/s extra de viáticos.':'')+hotelMsg+hotelAlert;
   n('txt-dana').textContent=msgD;
@@ -967,7 +975,8 @@ n('btn-save-svc').addEventListener('click',function(){
   var linerTipo=n('f-liner-tipo').value;
   var linerGas=n('f-liner-gas')?n('f-liner-gas').value:'';
   var linerVacio=n('f-liner-vacio')?n('f-liner-vacio').value:'no';
-  var s={id:'SRV-'+Date.now(),fecha:n('f-fecha').value,cliente:cl2,producto:prodDisplay,tipo:tipo,bb:bb,kg:parseInt(n('f-kg').value)||1200,receta:parseInt(n('f-rec').value)||0,kmdest:parseInt(n('f-kmd').value)||0,estado:n('f-est').value,obs:n('f-obs').value,hotel:hotelExtra,producto2:pr2s,bb2:bb2s,kg2:kg2s,dias_extra:diasExtra,km_extra:kmExtraV,cargas_virt:cargasVirtV,extras:extrasV,viat_total:viatTotal,liner:linerCant,liner_tipo:linerTipo,liner_gas:linerGas,liner_vacio:linerVacio};
+  var _hotelPaySave=n('f-hotel-pay')?n('f-hotel-pay').value:'admin';
+  var s={id:'SRV-'+Date.now(),fecha:n('f-fecha').value,cliente:cl2,producto:prodDisplay,tipo:tipo,bb:bb,kg:parseInt(n('f-kg').value)||1200,receta:parseInt(n('f-rec').value)||0,kmdest:parseInt(n('f-kmd').value)||0,estado:n('f-est').value,obs:n('f-obs').value,hotel:hotelExtra,hotel_pay:_hotelPaySave,producto2:pr2s,bb2:bb2s,kg2:kg2s,dias_extra:diasExtra,km_extra:kmExtraV,cargas_virt:cargasVirtV,extras:extrasV,viat_total:viatTotal,liner:linerCant,liner_tipo:linerTipo,liner_gas:linerGas,liner_vacio:linerVacio};
   servicios.unshift(s);lsSet('bb_s',JSON.stringify(servicios));
   postAPI('saveServicio',s);
   renderAgenda();closeModal('modal-svc');
@@ -1645,6 +1654,12 @@ function pdfWaDana(){
   var txt=el?el.textContent.trim():'';
   if(!txt){toast('⚠️ No hay servicio cargado');return;}
   if(!window.jspdf){toast('⚠️ Cargando librería PDF, intentá de nuevo en 3 seg');return;}
+  // jsPDF/helvetica no soporta emojis ni unicode extendido — limpiar texto
+  var txt=txt
+    .replace(/──+/g,'------------------------------')
+    .replace(/✅/g,'[OK]').replace(/💰/g,'$').replace(/💸/g,'$')
+    .replace(/📅/g,'').replace(/🏨/g,'[Hotel]').replace(/→/g,'->')
+    .replace(/[^\x00-\xFF]/g,'');
   var doc=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   // Header verde
   doc.setFillColor(27,94,32);
@@ -1655,7 +1670,7 @@ function pdfWaDana(){
   doc.text('Bag Bio / Control Bio',14,13);
   doc.setFontSize(9);
   doc.setFont('helvetica','normal');
-  doc.text('Servicios de Atmósfera Modificada  ·  Dean Funes, Córdoba',14,20);
+  doc.text('Servicios de Atmosfera Modificada  -  Dean Funes, Cordoba',14,20);
   // Contenido
   doc.setTextColor(30,30,30);
   doc.setFontSize(11);
