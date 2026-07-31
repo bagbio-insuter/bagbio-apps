@@ -1339,13 +1339,21 @@ function mapClientes(rows){
 
 function syncData(){
   n('syncDot').className='dot sync';
+  var tablas=['config','servicios','checklist','clientes'];
   Promise.all([
-    sbGet('config'),
-    sbGet('servicios','select=*&order=fecha.desc'),
-    sbGet('checklist'),
-    sbGet('clientes','select=*&order=nombre.asc')
+    sbGet('config').catch(function(e){return {_err:'config:'+e.message};}),
+    sbGet('servicios','select=*&order=fecha.desc').catch(function(e){return {_err:'servicios:'+e.message};}),
+    sbGet('checklist').catch(function(e){return {_err:'checklist:'+e.message};}),
+    sbGet('clientes','select=*&order=nombre.asc').catch(function(e){return {_err:'clientes:'+e.message};})
   ]).then(function(res){
     var cfgR=res[0],svcs=res[1],chkR=res[2],clis=res[3];
+    // Detectar errores individuales
+    var errores=res.filter(function(r){return r&&r._err;}).map(function(r){return r._err;});
+    if(errores.length>0){n('syncDot').className='dot off';toast('⚠️ Error: '+errores.join(' | '));return;}
+    if(!Array.isArray(cfgR)||!Array.isArray(svcs)){
+      var detalle='cfg='+(Array.isArray(cfgR)?'ok':JSON.stringify(cfgR).slice(0,60))+' svc='+(Array.isArray(svcs)?'ok':JSON.stringify(svcs).slice(0,60));
+      n('syncDot').className='dot off';toast('⚠️ Respuesta inválida: '+detalle);return;
+    }
     if(Array.isArray(cfgR))cfgR.forEach(function(r){
       if(r.clave==='recetas_json'){try{var rp=JSON.parse(r.valor);if(Array.isArray(rp)&&rp.length){RECETAS=mergeRecetas(rp);lsSet('bb_rec',JSON.stringify(RECETAS));}}catch(e){}}
       else if(r.clave)cfg[r.clave]=r.valor;
@@ -1376,7 +1384,7 @@ function syncData(){
     renderAgenda();renderCL();renderCfg();renderClientes();populateClienteSel();
     n('syncDot').className='dot';
     
-  }).catch(function(){n('syncDot').className='dot off';toast('⚠️ Sin conexión — los datos pueden no estar actualizados');});
+  }).catch(function(e){n('syncDot').className='dot off';toast('⚠️ Sin conexión: '+(e&&e.message?e.message:'error desconocido'));});
 }
 
 async function postAPI(action,payload){
