@@ -419,13 +419,14 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 <!-- GABRIEL MODAL -->
 <div class="modal-ov" id="gab-modal">
   <div class="modal-bx">
-    <div class="modal-ttl">💵 Viáticos Gabriel</div>
+    <div class="modal-ttl">💵 Liquidación Gabriel</div>
     <div class="modal-sub" id="gab-sub"></div>
-    <div id="gab-detalle" style="background:#f5f5f5;border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.8"></div>
-    <label style="font-size:13px;font-weight:700;display:block;margin-bottom:6px">Adelanto registrado ($ ARS)</label>
-    <input type="number" id="gab-adelanto" style="width:100%;border:1.5px solid #ddd;border-radius:8px;padding:10px;font-size:15px;margin-bottom:14px" placeholder="0">
+    <div id="gab-detalle" style="background:#f5f5f5;border-radius:10px;padding:14px;margin-bottom:14px;font-size:13px;line-height:1.9"></div>
+    <label style="font-size:12px;font-weight:700;color:#555;display:block;margin-bottom:4px">💰 Saldo anterior a favor empresa (se resta)</label>
+    <input type="number" id="gab-saldo-ant" style="width:100%;border:1.5px solid #ddd;border-radius:8px;padding:10px;font-size:15px;margin-bottom:10px" placeholder="0" oninput="recalcGab()">
+    <div id="gab-neto" style="background:#E8F5E9;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:15px;font-weight:800;color:#1B5E20;text-align:center"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn btn-v" id="gab-save">💾 Registrar adelanto</button>
+      <button id="gab-wa" style="flex:1;background:#25D366;color:white;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer">📲 Enviar a Gabriel</button>
       <button class="btn" style="background:#eee;color:#333" onclick="document.getElementById('gab-modal').style.display='none'">Cerrar</button>
     </div>
   </div>
@@ -651,20 +652,71 @@ function openStella(id){
   n('stella-modal').style.display='flex';
 }
 
+let _gabSvc = null;
+
+function recalcGab(){
+  if(!_gabSvc) return;
+  const tr = calcTransf(_gabSvc);
+  const jGab = parseFloat(CFG.jornal_gab||18000)*tr.dias;
+  const totalGab = jGab + tr.peajes + tr.extras + tr.hotelCost;
+  const saldoAnt = parseFloat(n('gab-saldo-ant').value||0);
+  const neto = Math.max(0, totalGab - saldoAnt);
+  n('gab-neto').innerHTML = `A transferir a Gabriel: <span style="font-size:18px">$${fNum(neto)}</span>`;
+  return { totalGab, saldoAnt, neto, tr, jGab };
+}
+
 function openGab(id){
   const s=ALL_SVCS.find(x=>x.id===id);if(!s)return;
+  _gabSvc = s;
   const tr=calcTransf(s);
-  const jGabTotal=parseFloat(CFG.jornal_gab||18000)*tr.dias+tr.peajes+tr.extras+tr.hotelCost;
+  const jGab=parseFloat(CFG.jornal_gab||18000)*tr.dias;
+  const totalGab=jGab+tr.peajes+tr.extras+tr.hotelCost;
+
   n('gab-sub').textContent=`${s.cliente||''} · ${fDate(s.fecha)}`;
-  n('gab-detalle').innerHTML=`<b>Jornal (${tr.dias} días):</b> $${fNum(parseFloat(CFG.jornal_gab||18000)*tr.dias)}<br><b>Peajes:</b> $${fNum(tr.peajes)}<br><b>Extras:</b> $${fNum(tr.extras)}<br><b>Hotel:</b> $${fNum(tr.hotelCost)}<br><b>Total a liquidar:</b> $${fNum(jGabTotal)}<br><b>Adelanto ya registrado:</b> $${fNum(tr.adelantoGab)}`;
-  n('gab-adelanto').value=tr.adelantoGab||'';
-  n('gab-save').onclick=async()=>{
-    const monto=parseFloat(n('gab-adelanto').value||0);
-    await fetch(`${SB_URL}/rest/v1/gastos?servicio_id=eq.${id}&tipo=eq.adelanto_gab`,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
-    if(monto>0) await sbPost('gastos',{servicio_id:id,tipo:'adelanto_gab',monto,obs:'Adelanto Gabriel'});
-    n('gab-modal').style.display='none';
-    showToast('✅ Adelanto registrado');
-    await syncData();
+  n('gab-detalle').innerHTML=
+    `<div>📅 Servicio: <b>${s.id}</b></div>`+
+    `<div>🌿 Cliente: <b>${s.cliente||''}</b></div>`+
+    `<div>📆 Fecha: <b>${fDate(s.fecha)}</b></div>`+
+    `<div>⏱ Días: <b>${tr.dias}</b></div>`+
+    `<hr style="margin:6px 0;border-color:#ddd">`+
+    `<div>👷 Jornal (${tr.dias}d × $${fNum(parseFloat(CFG.jornal_gab||18000))}/d): <b>$${fNum(jGab)}</b></div>`+
+    `<div>🛣 Peajes: <b>$${fNum(tr.peajes)}</b></div>`+
+    `<div>📦 Extras: <b>$${fNum(tr.extras)}</b></div>`+
+    `<div>🏨 Hotel: <b>$${fNum(tr.hotelCost)}</b></div>`+
+    `<div style="font-weight:800;margin-top:4px">TOTAL LIQUIDADO: $${fNum(totalGab)}</div>`;
+
+  n('gab-saldo-ant').value = '';
+  recalcGab();
+
+  n('gab-wa').onclick=()=>{
+    const calc = recalcGab();
+    const msg =
+      `Bag Bio - Liquidación servicio ${id}
+`+
+      `Cliente: ${s.cliente||''}
+`+
+      `Fecha: ${fDate(s.fecha)}
+`+
+      `Días: ${tr.dias}
+`+
+      `──────────────
+`+
+      `Jornal: $${fNum(calc.jGab)}
+`+
+      (tr.peajes?`Peajes: $${fNum(tr.peajes)}
+`:'')+
+      (tr.extras?`Extras: $${fNum(tr.extras)}
+`:'')+
+      (tr.hotelCost?`Hotel: $${fNum(tr.hotelCost)}
+`:'')+
+      `Total liquidado: $${fNum(calc.totalGab)}
+`+
+      (calc.saldoAnt?`Saldo anterior: -$${fNum(calc.saldoAnt)}
+`:'')+
+      `──────────────
+`+
+      `✅ A transferir: $${fNum(calc.neto)}`;
+    window.open('whatsapp://send?phone=&text='+encodeURIComponent(msg),'_blank');
   };
   n('gab-modal').style.display='flex';
 }
