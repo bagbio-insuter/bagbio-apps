@@ -540,10 +540,36 @@ function calcTransf(s){
   return{transferGab,transferTec:jTec,transferTotal,...e};
 }
 
+let showHistorial = false;
+const TODAY = new Date().toISOString().split('T')[0];
+
+function isActive(s){
+  const activeEstados = ['pendiente','confirmado','en_curso'];
+  if(activeEstados.includes(s.estado)) return true;
+  // Also show recent completed (last 7 days) in active view
+  if(s.fecha && s.fecha >= new Date(Date.now()-7*86400000).toISOString().split('T')[0]) return true;
+  return false;
+}
+
+function toggleHistorial(){
+  showHistorial = !showHistorial;
+  const btn = n('btn-historial');
+  if(btn){
+    btn.textContent = showHistorial ? '📋 Ver activos' : '📚 Ver historial';
+    btn.style.background = showHistorial ? '#E8EAF6' : '#f5f5f5';
+    btn.style.color = showHistorial ? '#1565C0' : '#555';
+  }
+  renderSvc();
+}
+
 function getAreaSvcs(){
-  if(activeArea==='map') return ALL_SVCS.filter(s=>s._area==='map');
-  if(activeArea==='tecnico') return ALL_SVCS.filter(s=>s._area==='tecnico');
-  return ALL_SVCS;
+  let svcs = ALL_SVCS;
+  if(activeArea==='map') svcs = svcs.filter(s=>s._area==='map');
+  if(activeArea==='tecnico') svcs = svcs.filter(s=>s._area==='tecnico');
+  if(showHistorial){
+    return svcs.filter(s=>!isActive(s));
+  }
+  return svcs.filter(s=>isActive(s));
 }
 
 const ESTADO_COLOR={pendiente:'#FF9800',confirmado:'#1565C0',en_curso:'#F9A825',completado:'#2E7D32',cancelado:'#C62828'};
@@ -554,7 +580,14 @@ function renderSvc(){
   const svcs=getAreaSvcs();
   const cont=n('list-svc');
   if(!cont)return;
-  if(!svcs.length){cont.innerHTML='<div style="text-align:center;padding:40px;color:#999">No hay servicios</div>';return;}
+  const cntEl=n('svc-count');
+  if(cntEl) cntEl.textContent=svcs.length ? `${svcs.length} servicio${svcs.length!==1?'s':''}` : '';
+  if(!svcs.length){
+    cont.innerHTML=showHistorial
+      ?'<div style="text-align:center;padding:40px;color:#999">Sin servicios en historial</div>'
+      :'<div style="text-align:center;padding:40px;color:#999">No hay servicios activos</div>';
+    return;
+  }
   cont.innerHTML=svcs.map(s=>{
     const est=s.estado||'pendiente';
     const bdr=ESTADO_COLOR[est]||'#ccc';
