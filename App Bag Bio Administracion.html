@@ -509,36 +509,52 @@ async function syncData(){
 }
 
 function calcEcon(s){
-  const km=parseFloat(s.km||s.distancia_km||0);
+  // App Madre field names: kmdest, hotel (noches), viat_total (comidas), extras, dias_extra
+  const km=parseFloat(s.kmdest||s.km||s.distancia_km||0);
   const kmTotal=km*2;
   const consumo=parseFloat(CFG.consumo||10);
   const gasoil=parseFloat(CFG.gasoil||1200);
   const fuelCost=kmTotal*gasoil/consumo;
+
   const litN2=parseFloat(s.litros_n2||s.n2_litros||0);
   const litCO2=parseFloat(s.litros_co2||s.co2_litros||0);
   const gasCost=litN2*parseFloat(CFG.precio_n2||80)+litCO2*parseFloat(CFG.precio_co2||120);
-  const dias=parseFloat(s.dias||1);
-  const hotel=parseFloat(s.hotel_noches||0);
+
+  const dias=parseFloat(s.dias_extra||s.dias||1);
+  const hotel=parseFloat(s.hotel||s.hotel_noches||0);
   const hotelCost=hotel*parseFloat(CFG.hotel||60000);
+
+  // viat_total = comidas (desay+mer+alm+cena) precalculated by App Madre for 2 people
+  const comidas=parseFloat(s.viat_total||0);
+  // extras = imprevistos/cargas virtuales
+  const extrasV=parseFloat(s.extras||s.km_extra||0);
+  const cargasV=parseFloat(s.cargas_virt||0);
+
   const jTec=parseFloat(CFG.jornal_tec||25000);
   const jGab=parseFloat(CFG.jornal_gab||18000);
   const laborCost=(dias*jTec)+(dias*jGab);
+
   const svcG=ALL_GASTOS.filter(g=>g.servicio_id===s.id);
   const peajes=svcG.filter(g=>g.tipo==='peaje').reduce((a,g)=>a+parseFloat(g.monto||0),0);
-  const extras=svcG.filter(g=>g.tipo==='extra').reduce((a,g)=>a+parseFloat(g.monto||0),0);
+  const extrasGastos=svcG.filter(g=>g.tipo==='extra').reduce((a,g)=>a+parseFloat(g.monto||0),0);
   const adelantoGab=svcG.filter(g=>g.tipo==='adelanto_gab').reduce((a,g)=>a+parseFloat(g.monto||0),0);
-  const viaticosTotal=peajes+extras+hotelCost;
-  const totalCost=fuelCost+gasCost+laborCost+viaticosTotal;
-  return{km,kmTotal,fuelCost,gasCost,hotelCost,hotel,laborCost,viaticosTotal,peajes,extras,totalCost,adelantoGab,dias};
+
+  const totalViatGab=comidas+hotelCost+extrasV+extrasGastos+cargasV;
+  const totalCost=fuelCost+gasCost+laborCost+totalViatGab;
+
+  return{km,kmTotal,fuelCost,gasCost,hotelCost,hotel,laborCost,
+    comidas,extrasV,extrasGastos,cargasV,peajes,
+    viaticosTotal:totalViatGab,totalCost,adelantoGab,dias};
 }
 
 function calcTransf(s){
   const e=calcEcon(s);
   const jGab=parseFloat(CFG.jornal_gab||18000)*e.dias;
   const jTec=parseFloat(CFG.jornal_tec||25000)*e.dias;
-  const transferGab=Math.max(0,jGab+e.peajes+e.extras+e.hotelCost-e.adelantoGab);
+  // Transfer to Gabriel = all his viáticos (comidas + hotel + extras)
+  const viatGab=Math.max(0,e.viaticosTotal-e.adelantoGab);
   const transferTotal=e.laborCost+e.viaticosTotal;
-  return{transferGab,transferTec:jTec,transferTotal,...e};
+  return{transferGab:viatGab,jGab,transferTec:jTec,transferTotal,...e};
 }
 
 let showHistorial = false;
@@ -611,13 +627,16 @@ function renderSvc(){
           <div><span style="color:#888">N₂:</span> <b>${s.litros_n2||s.n2_litros||0} L</b></div>
         </div>
         <div style="background:#E8F5E9;border-radius:10px;padding:12px 14px;margin-bottom:12px">
-          <div style="font-size:11px;font-weight:800;color:#1B5E20;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">💰 Transferencias estimadas</div>
-          <div style="font-size:13px;line-height:2">
-            <div>💵 Gabriel: <b>$${fNum(tr.transferGab)}</b></div>
-            <div>👷 Técnico principal: <b>$${fNum(tr.transferTec)}</b></div>
-            <div>⛽ Combustible: <b>$${fNum(tr.fuelCost)}</b></div>
-            <div>🏨 Hotel: <b>$${fNum(tr.hotelCost)}</b></div>
-            <div style="border-top:1px solid #c8e6c9;margin-top:6px;padding-top:6px;font-weight:800;font-size:14px">TOTAL: $${fNum(tr.transferTotal)}</div>
+          <div style="font-size:11px;font-weight:800;color:#1B5E20;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">💸 Transferencia a Gabriel</div>
+          <div style="font-size:13px;line-height:1.9">
+            ${tr.comidas?`<div>🍽 Comidas/viáticos: <b>$${fNum(tr.comidas)}</b></div>`:''}
+            ${tr.hotelCost?`<div>🏨 Hotel (${tr.hotel} noche/s): <b>$${fNum(tr.hotelCost)}</b></div>`:''}
+            ${tr.extrasV?`<div>📦 Extras/imprevistos: <b>$${fNum(tr.extrasV)}</b></div>`:''}
+            ${tr.cargasV?`<div>⚡ Cargas virtuales: <b>$${fNum(tr.cargasV)}</b></div>`:''}
+            ${tr.peajes?`<div>🛣 Peajes: <b>$${fNum(tr.peajes)}</b></div>`:''}
+            ${tr.extrasGastos?`<div>🔧 Gastos campo: <b>$${fNum(tr.extrasGastos)}</b></div>`:''}
+            ${!tr.comidas&&!tr.hotelCost&&!tr.extrasV&&!tr.peajes?`<div style="color:#888;font-style:italic;font-size:12px">Sin viáticos calculados</div>`:''}
+            <div style="border-top:1px solid #c8e6c9;margin-top:6px;padding-top:6px;font-weight:800;font-size:15px">A transferir: $${fNum(tr.transferGab)}</div>
           </div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:8px">
@@ -657,62 +676,66 @@ let _gabSvc = null;
 function recalcGab(){
   if(!_gabSvc) return;
   const tr = calcTransf(_gabSvc);
-  const jGab = parseFloat(CFG.jornal_gab||18000)*tr.dias;
-  const totalGab = jGab + tr.peajes + tr.extras + tr.hotelCost;
+  // Viáticos only: peajes + extras + hotel (NO jornal - that's salary, handled separately)
+  const totalViat = tr.peajes + tr.extras + tr.hotelCost;
   const saldoAnt = parseFloat(n('gab-saldo-ant').value||0);
-  const neto = Math.max(0, totalGab - saldoAnt);
-  n('gab-neto').innerHTML = `A transferir a Gabriel: <span style="font-size:18px">$${fNum(neto)}</span>`;
-  return { totalGab, saldoAnt, neto, tr, jGab };
+  const neto = Math.max(0, totalViat - saldoAnt);
+  n('gab-neto').innerHTML = `A reintegrar a Gabriel: <span style="font-size:18px">$${fNum(neto)}</span>`;
+  return { totalViat, saldoAnt, neto, tr };
 }
 
 function openGab(id){
   const s=ALL_SVCS.find(x=>x.id===id);if(!s)return;
   _gabSvc = s;
   const tr=calcTransf(s);
-  const jGab=parseFloat(CFG.jornal_gab||18000)*tr.dias;
-  const totalGab=jGab+tr.peajes+tr.extras+tr.hotelCost;
 
   n('gab-sub').textContent=`${s.cliente||''} · ${fDate(s.fecha)}`;
+  const totalViat = tr.peajes + tr.extras + tr.hotelCost;
+  // Build individual expense rows
+  const svcGastos = ALL_GASTOS.filter(g=>g.servicio_id===id && g.tipo!=='adelanto_gab');
+  const TIPO_LBL = {peaje:'🛣 Peaje',comida:'🍽 Comida',hospedaje:'🏨 Hospedaje',nafta:'⛽ Nafta extra',hotel:'🏨 Hotel',extra:'📦 Gasto extra'};
+  const gastosRows = svcGastos.length
+    ? svcGastos.map(g=>`<div>${TIPO_LBL[g.tipo]||('📌 '+g.tipo)}: <b>$${fNum(g.monto)}</b>${g.obs?' <span style="color:#888;font-size:11px">('+g.obs+')</span>':''}</div>`).join('')
+    : (totalViat>0
+        ? `<div>🛣 Peajes: <b>$${fNum(tr.peajes)}</b></div><div>📦 Extras: <b>$${fNum(tr.extras)}</b></div><div>🏨 Hotel: <b>$${fNum(tr.hotelCost)}</b></div>`
+        : `<div style="color:#999;font-style:italic">Sin gastos registrados por operarios</div>`);
   n('gab-detalle').innerHTML=
-    `<div>📅 Servicio: <b>${s.id}</b></div>`+
-    `<div>🌿 Cliente: <b>${s.cliente||''}</b></div>`+
-    `<div>📆 Fecha: <b>${fDate(s.fecha)}</b></div>`+
-    `<div>⏱ Días: <b>${tr.dias}</b></div>`+
+    `<div>📅 <b>${s.id}</b> · ${fDate(s.fecha)} · ${tr.dias} día${tr.dias>1?'s':''}</div>`+
+    `<div style="color:#888;font-size:12px;margin-bottom:8px">${s.cliente||''}</div>`+
     `<hr style="margin:6px 0;border-color:#ddd">`+
-    `<div>👷 Jornal (${tr.dias}d × $${fNum(parseFloat(CFG.jornal_gab||18000))}/d): <b>$${fNum(jGab)}</b></div>`+
-    `<div>🛣 Peajes: <b>$${fNum(tr.peajes)}</b></div>`+
-    `<div>📦 Extras: <b>$${fNum(tr.extras)}</b></div>`+
-    `<div>🏨 Hotel: <b>$${fNum(tr.hotelCost)}</b></div>`+
-    `<div style="font-weight:800;margin-top:4px">TOTAL LIQUIDADO: $${fNum(totalGab)}</div>`;
+    gastosRows+
+    `<div style="font-weight:800;margin-top:6px;border-top:1px solid #ddd;padding-top:6px">TOTAL VIÁTICOS: $${fNum(totalViat)}</div>`;
 
   n('gab-saldo-ant').value = '';
   recalcGab();
 
   n('gab-wa').onclick=()=>{
     const calc = recalcGab();
+    // Build itemized list from individual gastos records
+    const svcGastos = ALL_GASTOS.filter(g=>g.servicio_id===s.id && g.tipo!=='adelanto_gab');
+    const TIPO_LBL = {peaje:'🛣 Peaje',comida:'🍽 Comida',hospedaje:'🏨 Hospedaje',nafta:'⛽ Nafta extra',hotel:'🏨 Hotel',extra:'📦 Gasto extra'};
+    let itemLines = '';
+    if(svcGastos.length){
+      itemLines = svcGastos.map(g=>`${TIPO_LBL[g.tipo]||('📌 '+g.tipo)}: $${fNum(g.monto)}${g.obs?' ('+g.obs+')':''}`).join('\n');
+    } else {
+      // Fallback to totals if no individual records
+      if(tr.peajes) itemLines += `🛣 Peajes: $${fNum(tr.peajes)}\n`;
+      if(tr.extras) itemLines += `📦 Extras: $${fNum(tr.extras)}\n`;
+      if(tr.hotelCost) itemLines += `🏨 Hotel: $${fNum(tr.hotelCost)}\n`;
+    }
     const msg =
-      `Bag Bio - Liquidación servicio ${id}
+      `💼 Bag Bio — Viáticos servicio
 `+
       `Cliente: ${s.cliente||''}
 `+
-      `Fecha: ${fDate(s.fecha)}
-`+
-      `Días: ${tr.dias}
+      `Fecha: ${fDate(s.fecha)} · ${tr.dias} día${tr.dias>1?'s':''}
 `+
       `──────────────
 `+
-      `Jornal: $${fNum(calc.jGab)}
+      (itemLines ? itemLines+'\n' : '')+
+      `Total gastos: $${fNum(calc.totalViat)}
 `+
-      (tr.peajes?`Peajes: $${fNum(tr.peajes)}
-`:'')+
-      (tr.extras?`Extras: $${fNum(tr.extras)}
-`:'')+
-      (tr.hotelCost?`Hotel: $${fNum(tr.hotelCost)}
-`:'')+
-      `Total liquidado: $${fNum(calc.totalGab)}
-`+
-      (calc.saldoAnt?`Saldo anterior: -$${fNum(calc.saldoAnt)}
-`:'')+
+      (calc.saldoAnt?`Saldo a favor empresa: -$${fNum(calc.saldoAnt)}\n`:'')+
       `──────────────
 `+
       `✅ A transferir: $${fNum(calc.neto)}`;
@@ -791,7 +814,7 @@ function filterLiq(){
       <div style="font-weight:800;font-size:14px">${s.cliente||''}</div>
       <div style="font-size:12px;color:#666;margin-bottom:8px">${fDate(s.fecha)} · ${s._area==='map'?'🌿 MAP':'🔧 Técnico'}</div>
       <div style="font-size:13px;line-height:1.9;background:#f5f5f5;padding:10px;border-radius:8px">
-        <div>💵 Gabriel: <b>$${fNum(tr.transferGab)}</b></div>
+        <div>🧳 Viáticos Gabriel: <b>$${fNum(tr.transferGab)}</b></div>
         <div>👷 Técnico: <b>$${fNum(tr.transferTec)}</b></div>
         <div>⛽ Combustible: <b>$${fNum(tr.fuelCost)}</b></div>
         <div style="border-top:1px solid #ddd;margin-top:6px;padding-top:6px;font-weight:800">Total: $${fNum(tr.transferTotal)}</div>
