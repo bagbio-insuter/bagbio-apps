@@ -525,12 +525,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
       <div class="sel-wrap"><select id="f-est">
         <option>Pendiente</option><option>Confirmado</option><option>En curso</option><option>Completado</option>
       </select></div></div>
-    <div class="field"><label>🏨 Noches de hotel extra</label><input type="number" id="f-hotel" value="0" min="0" placeholder="0" oninput="var w=document.getElementById('f-hotel-pay-wrap');if(w)w.style.display=parseInt(this.value)>0?'block':'none';"></div>
-    <div class="field" id="f-hotel-pay-wrap" style="display:none"><label>¿Quién paga el hotel?</label>
-      <div class="sel-wrap"><select id="f-hotel-pay">
-        <option value="admin">Admin reserva y paga (no va a viáticos)</option>
-        <option value="tecnicos">Técnicos pagan (incluir en viáticos × 2)</option>
-      </select></div></div>
+    <div class="field"><label>🏨 Noches de hotel extra</label><input type="number" id="f-hotel" value="0" min="0" placeholder="0"></div>
     <div class="field"><label>📅 Días extra (viáticos)</label><input type="number" id="f-dias-extra" value="0" min="0" placeholder="0"></div>
     <div class="field"><label>🚐 Km movimientos locales</label><input type="number" id="f-km-extra" value="0" min="0" placeholder="0"></div>
     <div class="field"><label>📱 Cargas virtuales ($)</label><input type="number" id="f-cargas-virt" value="0" min="0" placeholder="0"></div>
@@ -939,8 +934,8 @@ n('btn-gen-msg').addEventListener('click',function(){
   var diasExtra=parseInt(n('f-dias-extra').value)||0;
   var dViat=d+diasExtra; // días para calcular viáticos (puede incluir días extra de viaje/imprevistos)
   var hotelCosto=hotelExtra>0?(hotelExtra*(parseFloat(cfg.hotel)||60000)):0;
-  var hotelPay=n('f-hotel-pay')?n('f-hotel-pay').value:'admin';
-  var hotelEnViat=hotelExtra>0&&hotelPay==='tecnicos';
+  var hotelPay='tecnicos';
+  var hotelEnViat=hotelExtra>0;
   // Origen del viaje
   var origenTipo=n('f-origen')?n('f-origen').value:'dean';
   var origenCli=n('f-origen-cli')?n('f-origen-cli').value:'';
@@ -1031,7 +1026,7 @@ n('btn-save-svc').addEventListener('click',function(){
   var linerTipo=n('f-liner-tipo').value;
   var linerGas=n('f-liner-gas')?n('f-liner-gas').value:'';
   var linerVacio=n('f-liner-vacio')?n('f-liner-vacio').value:'no';
-  var _hotelPaySave=n('f-hotel-pay')?n('f-hotel-pay').value:'admin';
+  var _hotelPaySave='tecnicos';
   var _origenSave=n('f-origen')?n('f-origen').value:'dean';
   var _origenCliSave=n('f-origen-cli')?n('f-origen-cli').value:'';
   var _kmOrigenSave=_origenSave==='cliente'?(parseInt(n('f-km-origen').value)||0):0;
