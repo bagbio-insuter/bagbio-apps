@@ -523,7 +523,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
     </div>
     <div class="field"><label>Estado</label>
       <div class="sel-wrap"><select id="f-est">
-        <option>Pendiente</option><option>Confirmado</option><option>En curso</option><option>Completado</option>
+        <option>Pendiente</option><option>Confirmado</option><option>En curso</option><option>Completado</option><option>Cancelado</option>
       </select></div></div>
     <div class="field"><label>🏨 Noches de hotel extra</label><input type="number" id="f-hotel" value="0" min="0" placeholder="0"></div>
     <div class="field"><label>📅 Días extra (viáticos)</label><input type="number" id="f-dias-extra" value="0" min="0" placeholder="0"></div>
@@ -1084,17 +1084,17 @@ function emailServicio(svcId){
 function buildSvcCard(s){
   var d=dias(s.bb||0,s.tipo),tn=((s.bb||0)*(s.kg||1200)/1000).toFixed(1);
   var bc=s.estado==='En curso'?'curso':'';
-  var bClass={Completado:'b-comp',Pendiente:'b-pend',Confirmado:'b-conf','En curso':'b-curs'}[s.estado]||'b-pend';
+  var bClass={Completado:'b-comp',Pendiente:'b-pend',Confirmado:'b-conf','En curso':'b-curs',Cancelado:'b-cancel',Reprogramado:'b-reprog'}[s.estado]||'b-pend';
   var cliLoc=CLIENTES.find(function(c){return c.n===s.cliente;})||{};
   var mapsQ=encodeURIComponent((cliLoc.loc&&cliLoc.loc!=='—'?cliLoc.loc+', Argentina':s.cliente+', Argentina'));
-  var estOpts=['Pendiente','Confirmado','En curso','Completado'];
+  var estOpts=['Pendiente','Confirmado','En curso','Completado','Cancelado','Reprogramado'];
   var estSel=estOpts.map(function(e){return '<option'+(e===s.estado?' selected':'')+'>'+e+'</option>';}).join('');
   var h='<div class="svc '+bc+'">';
   h+='<div class="svc-top"><span class="svc-name">'+s.cliente+'</span><span class="badge '+bClass+'">'+s.estado+'</span><button class="del-svc" data-svc-del="'+s.id+'" title="Eliminar">🗑</button></div>';
   h+='<div class="svc-det">📦 '+s.producto+' · '+s.bb+' BB · '+d+' día/s</div>';
   h+='<div class="svc-det">🗓 '+fDate(s.fecha)+' · 🌿 '+tn+' Tn</div>';
   h+='<div style="margin:6px 0 4px"><select data-est-id="'+s.id+'" style="width:100%;padding:7px 10px;border:2px solid #e0e0e0;border-radius:9px;font-size:13px;font-weight:600;color:#333;background:white;cursor:pointer">'+estSel+'</select></div>';
-  h+='<div class="svc-actions"><button class="svc-btn-wa" data-svc-wa="'+s.id+'">💬 WA</button><button class="svc-btn-mail" data-svc-mail="'+s.id+'">📧 Mail</button><a class="svc-btn-maps" href="https://maps.google.com/?q='+mapsQ+'" target="_blank">📍 Maps</a></div>';
+  h+='<div class="svc-actions"><button class="svc-btn-wa" data-svc-wa="'+s.id+'">💬 WA</button><button class="svc-btn-mail" data-svc-mail="'+s.id+'">📧 Mail</button><a class="svc-btn-maps" href="https://maps.google.com/?q='+mapsQ+'" target="_blank">📍 Maps</a><button class="svc-btn-cancel" data-svc-cancel="'+s.id+'" style="background:#FFEBEE;color:#B71C1C;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">❌ Cancelar</button><button class="svc-btn-reprog" data-svc-reprog="'+s.id+'" data-svc-fecha="'+s.fecha+'" style="background:#EDE7F6;color:#4A148C;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">🔄 Reprogramar</button></div>';
   h+='</div>';
   return h;
 }
@@ -1146,6 +1146,42 @@ function renderAgenda(){
       sbPatch('servicios','id',id,{estado:'Eliminado'});
       renderAgenda();
       toast('Servicio eliminado');
+    });
+  });
+  el.querySelectorAll('[data-svc-cancel]').forEach(function(b){
+    b.addEventListener('click',function(e){
+      e.stopPropagation();
+      var id=b.dataset.svcCancel;
+      var s=servicios.find(function(sv){return sv.id===id;});
+      if(!s)return;
+      var motivo=prompt('Motivo de cancelación (opcional):','');
+      if(motivo===null)return; // user pressed Cancel on prompt
+      s.estado='Cancelado';
+      if(motivo) s.obs=(s.obs?s.obs+' | ':'')+'Cancelado: '+motivo;
+      lsSet('bb_s',JSON.stringify(servicios));
+      postAPI('updateServicioEstado',{id:id,estado:'Cancelado'});
+      if(motivo) sbPatch('servicios','id',id,{obs:s.obs});
+      renderAgenda();
+      toast('❌ Servicio cancelado');
+    });
+  });
+  el.querySelectorAll('[data-svc-reprog]').forEach(function(b){
+    b.addEventListener('click',function(e){
+      e.stopPropagation();
+      var id=b.dataset.svcReprog;
+      var fechaOrig=b.dataset.svcFecha;
+      var s=servicios.find(function(sv){return sv.id===id;});
+      if(!s)return;
+      var nuevaFecha=prompt('Nueva fecha (YYYY-MM-DD):',new Date().toISOString().split('T')[0]);
+      if(!nuevaFecha)return;
+      var obsNueva=(s.obs?s.obs+' | ':'')+'Reprog. desde '+fDate(fechaOrig);
+      s.fecha=nuevaFecha;
+      s.estado='Reprogramado';
+      s.obs=obsNueva;
+      lsSet('bb_s',JSON.stringify(servicios));
+      sbPatch('servicios','id',id,{fecha:nuevaFecha,estado:'Reprogramado',obs:obsNueva});
+      renderAgenda();
+      toast('🔄 Reprogramado para '+fDate(nuevaFecha));
     });
   });
   el.querySelectorAll('[data-est-id]').forEach(function(sel){
@@ -1462,6 +1498,7 @@ async function postAPI(action,payload){
       return ok;
     }
     else if(action==='updateServicioEstado') await sbPatch('servicios','id',payload.id,{estado:payload.estado});
+    else if(action==='updateServicioFecha') await sbPatch('servicios','id',payload.id,{fecha:payload.fecha,estado:payload.estado,obs:payload.obs});
     else if(action==='saveChecklist'){
       for(var i=0;i<payload.length;i++){
         await sbUpsert('checklist',{id:payload[i].id,categoria:payload[i].cat||payload[i].categoria,item:payload[i].item,completado:!!payload[i].done,quien:payload[i].quien||''});
