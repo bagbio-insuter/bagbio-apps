@@ -627,8 +627,8 @@ function renderSvc(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:13px">
           <div><span style="color:#888">Producto:</span> <b>${s.producto||'-'}</b></div>
           <div><span style="color:#888">Lote:</span> <b>${s.lote||'-'}</b></div>
-          <div><span style="color:#888">Envases:</span> <b>${s.cantidad_envases||s.envases||'-'}</b></div>
-          <div><span style="color:#888">Km:</span> <b>${s.km||s.distancia_km||0}</b></div>
+          <div><span style="color:#888">Envases:</span> <b>${s.bb||s.cantidad_envases||s.envases||'-'}</b></div>
+          <div><span style="color:#888">Km:</span> <b>${s.kmdest||s.km||s.distancia_km||0}</b></div>
           <div><span style="color:#888">Días:</span> <b>${s.dias||1}</b></div>
           <div><span style="color:#888">N₂:</span> <b>${s.litros_n2||s.n2_litros||0} L</b></div>
         </div>
@@ -818,9 +818,9 @@ function filterLiq(){
   if(!svcs.length){cont.innerHTML='<div style="text-align:center;padding:30px;color:#999">Sin servicios este mes</div>';return;}
   cont.innerHTML=svcs.map(s=>{
     const dias=parseFloat(s.dias_extra||s.dias||1);
-    const jGab=parseFloat(CFG.jornal_gab||18000)*dias;
-    const jTec=parseFloat(CFG.jornal_tec||25000)*dias;
-    const tr=calcTransf(s);
+    const jornal=parseFloat(CFG.jornal_tec||30000);
+    const jCada=jornal*dias;
+    const totalSvc=jCada*2;
     return`<div style="background:white;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div style="font-weight:800;font-size:15px">${s.cliente||''}</div>
@@ -829,20 +829,15 @@ function filterLiq(){
       <div style="font-size:12px;color:#888;margin-bottom:10px">${fDate(s.fecha)} · ${s._area==='map'?'🌿 MAP':'🔧 Técnico'}</div>
       <div style="background:#f8f9ff;border-radius:10px;padding:11px;font-size:13px;line-height:2">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span>💼 Jornal Gabriel (${dias}d)</span>
-          <b>$${fNum(jGab)}</b>
+          <span>💼 Jornal Gabriel (${dias}d × $${fNum(jornal)})</span>
+          <b>$${fNum(jCada)}</b>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span>🔧 Jornal Alcides (${dias}d)</span>
-          <b>$${fNum(jTec)}</b>
+          <span>🔧 Jornal Alcides (${dias}d × $${fNum(jornal)})</span>
+          <b>$${fNum(jCada)}</b>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;color:#888;font-size:12px">
-          <span>🧳 Viáticos Gabriel</span>
-          <span>$${fNum(tr.viaticosTotal)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;color:#888;font-size:12px">
-          <span>⛽ Combustible</span>
-          <span>$${fNum(tr.fuelCost)}</span>
+        <div style="border-top:1px solid #e0e0e0;margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-weight:900">
+          <span>Total jornales</span><span>$${fNum(totalSvc)}</span>
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px">
@@ -868,7 +863,7 @@ function openRecibo(svcId, operario){
   _reciboSvc=s;_reciboOp=operario;
   const dias=parseFloat(s.dias_extra||s.dias||1);
   const nombre=operario==='gabriel'?'Gabriel Rodríguez':'Alcides Fabbio';
-  const jornal=operario==='gabriel'?parseFloat(CFG.jornal_gab||18000):parseFloat(CFG.jornal_tec||25000);
+  const jornal=parseFloat(CFG.jornal_tec||30000);
   const total=jornal*dias;
   n('recibo-info').innerHTML=
     '<div><b>Operario:</b> '+nombre+'</div>'+
@@ -945,15 +940,15 @@ function generarResumenStella(){
   let totalGab=0,totalAlc=0,rows='';
   svcs.forEach(s=>{
     const dias=parseFloat(s.dias_extra||s.dias||1);
-    const jGab=parseFloat(CFG.jornal_gab||18000)*dias;
-    const jTec=parseFloat(CFG.jornal_tec||25000)*dias;
-    totalGab+=jGab;totalAlc+=jTec;
+    const jornal=parseFloat(CFG.jornal_tec||30000);
+    const jCada=jornal*dias;
+    totalGab+=jCada;totalAlc+=jCada;
     rows+=`<tr>
       <td>${fDate(s.fecha)}</td>
       <td>${s.cliente||''}</td>
       <td style="text-align:center">${dias}</td>
-      <td style="text-align:right">$${fNum(jGab)}</td>
-      <td style="text-align:right">$${fNum(jTec)}</td>
+      <td style="text-align:right">$${fNum(jCada)}</td>
+      <td style="text-align:right">$${fNum(jCada)}</td>
     </tr>`;
   });
   const w=window.open('','_blank');
@@ -1011,8 +1006,7 @@ const CFG_FIELDS=[
   {key:'precio_n2',label:'Precio N₂ ($/L)',def:'80'},
   {key:'precio_co2',label:'Precio CO₂ ($/L)',def:'120'},
   {key:'hotel',label:'Hotel por noche ($)',def:'60000'},
-  {key:'jornal_tec',label:'Jornal técnico/día ($)',def:'25000'},
-  {key:'jornal_gab',label:'Jornal Gabriel/día ($)',def:'18000'},
+  {key:'jornal_tec',label:'Jornal por día — ambos operarios ($)',def:'30000'},
 ];
 
 function renderConfig(){
