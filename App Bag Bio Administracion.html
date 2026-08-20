@@ -416,7 +416,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
     <div class="modal-sub" id="stella-sub"></div>
     <div id="stella-detalle" style="background:#f5f5f5;border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.8"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn btn-az" id="stella-wa">💬 Enviar por WhatsApp</button>
+      <button class="btn btn-az" id="stella-wa">📄 Generar PDF para Stella</button>
       <button class="btn" style="background:#eee;color:#333" onclick="document.getElementById('stella-modal').style.display='none'">Cerrar</button>
     </div>
   </div>
@@ -530,8 +530,13 @@ function calcEcon(s){
   const hotel=parseFloat(s.hotel||s.hotel_noches||0);
   const hotelCost=hotel*parseFloat(CFG.hotel||60000);
 
-  // viat_total = comidas (desay+mer+alm+cena) precalculated by App Madre for 2 people
-  const comidas=parseFloat(s.viat_total||0);
+  // Calculate meals from current config prices (2 people)
+  const pers=2;
+  const desayT=dias*pers*parseFloat(CFG.desay||9000);
+  const merT=dias*pers*parseFloat(CFG.merienda||9000);
+  const almT=dias*pers*parseFloat(CFG.almuerzo||20000);
+  const cenT=hotel*pers*parseFloat(CFG.cena||20000);
+  const comidas=desayT+merT+almT+cenT;
   // extras = imprevistos/cargas virtuales
   const extrasV=parseFloat(s.extras||s.km_extra||0);
   const cargasV=parseFloat(s.cargas_virt||0);
@@ -668,11 +673,54 @@ function toggleCard(id){
 function openStella(id){
   const s=ALL_SVCS.find(x=>x.id===id);if(!s)return;
   const tr=calcTransf(s);
+  const d=tr.dias, pers=2;
+  const desayT=d*pers*parseFloat(CFG.desay||9000);
+  const merT=d*pers*parseFloat(CFG.merienda||9000);
+  const almT=d*pers*parseFloat(CFG.almuerzo||20000);
+  const cenT=tr.hotel*pers*parseFloat(CFG.cena||20000);
+  const total=desayT+merT+almT+cenT+tr.hotelCost+tr.extrasV;
   n('stella-sub').textContent=`${s.cliente||''} · ${fDate(s.fecha)}`;
-  n('stella-detalle').innerHTML=`<b>Servicio:</b> ${id}<br><b>Cliente:</b> ${s.cliente||''}<br><b>Fecha:</b> ${fDate(s.fecha)}<br><b>Días:</b> ${tr.dias}<br><b>Km totales:</b> ${tr.kmTotal} km<br><b>Combustible:</b> $${fNum(tr.fuelCost)}<br><b>Hotel (${tr.hotel} noches):</b> $${fNum(tr.hotelCost)}<br><b>Jornal técnico:</b> $${fNum(tr.transferTec)}<br><b>Jornal Gabriel (total):</b> $${fNum(parseFloat(CFG.jornal_gab||18000)*tr.dias+tr.peajes+tr.extras+tr.hotelCost)}<br><b>Adelanto Gabriel:</b> $${fNum(tr.adelantoGab)}<hr style="margin:8px 0;border-color:#ddd"><b style="font-size:14px">TOTAL A TRANSFERIR: $${fNum(tr.transferTotal)}</b>`;
+  n('stella-detalle').innerHTML=
+    `<div style="font-size:13px;line-height:2">
+      <div style="display:flex;justify-content:space-between"><span>🌅 Desayunos (${d}d × ${pers}p)</span><b>$${fNum(desayT)}</b></div>
+      <div style="display:flex;justify-content:space-between"><span>🥐 Meriendas (${d}d × ${pers}p)</span><b>$${fNum(merT)}</b></div>
+      <div style="display:flex;justify-content:space-between"><span>🍽 Almuerzos (${d}d × ${pers}p)</span><b>$${fNum(almT)}</b></div>
+      ${cenT?`<div style="display:flex;justify-content:space-between"><span>🌙 Cenas (${tr.hotel}n × ${pers}p)</span><b>$${fNum(cenT)}</b></div>`:''}
+      ${tr.hotelCost?`<div style="display:flex;justify-content:space-between"><span>🏨 Hotel (${tr.hotel} noche/s)</span><b>$${fNum(tr.hotelCost)}</b></div>`:''}
+      ${tr.extrasV?`<div style="display:flex;justify-content:space-between"><span>📦 Extras</span><b>$${fNum(tr.extrasV)}</b></div>`:''}
+      <div style="border-top:2px solid #3949AB;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:15px;font-weight:900;color:#1a237e">
+        <span>A transferir a Gabriel</span><span>$${fNum(total)}</span>
+      </div>
+    </div>`;
   n('stella-wa').onclick=()=>{
-    const msg=`Bag Bio - Servicio ${id}\nCliente: ${s.cliente||''}\nFecha: ${fDate(s.fecha)}\nDías: ${tr.dias}\nTotal transferencias: $${fNum(tr.transferTotal)}\nGabriel (pendiente): $${fNum(tr.transferGab)}\nTécnico: $${fNum(tr.transferTec)}`;
-    window.open('whatsapp://send?phone=5493516457149&text='+encodeURIComponent(msg),'_blank');
+    const w=window.open('','_blank');
+    const hoy=new Date().toLocaleDateString('es-AR');
+    w.document.write(`<!DOCTYPE html><html><head><title>Orden transferencia</title>
+    <style>body{font-family:Arial,sans-serif;max-width:500px;margin:40px auto;padding:20px;font-size:14px;}
+    h2{color:#3949AB;margin-bottom:4px;}table{width:100%;border-collapse:collapse;margin:16px 0;}
+    td{padding:8px 4px;border-bottom:1px solid #eee;}td:last-child{text-align:right;font-weight:700;}
+    .tot{font-size:17px;font-weight:900;color:#1a237e;text-align:right;margin-top:14px;}
+    @media print{button{display:none!important;}}</style></head><body>
+    <h2>BAG BIO / CONTROL BIO</h2>
+    <p style="color:#666;margin:0 0 16px">Orden de transferencia — ${hoy}</p>
+    <table>
+      <tr><td>Destinatario</td><td><b>Gabriel Rodríguez</b></td></tr>
+      <tr><td>Concepto</td><td>Viáticos — servicio ${s.cliente||''}</td></tr>
+      <tr><td>Fecha servicio</td><td>${fDate(s.fecha)}</td></tr>
+      <tr><td>Días trabajados</td><td>${d}</td></tr>
+    </table>
+    <table>
+      <tr><td>🌅 Desayunos (${d}d × ${pers}p)</td><td>$${fNum(desayT)}</td></tr>
+      <tr><td>🥐 Meriendas (${d}d × ${pers}p)</td><td>$${fNum(merT)}</td></tr>
+      <tr><td>🍽 Almuerzos (${d}d × ${pers}p)</td><td>$${fNum(almT)}</td></tr>
+      ${cenT?`<tr><td>🌙 Cenas (${tr.hotel}n × ${pers}p)</td><td>$${fNum(cenT)}</td></tr>`:''}
+      ${tr.hotelCost?`<tr><td>🏨 Hotel (${tr.hotel} noche/s)</td><td>$${fNum(tr.hotelCost)}</td></tr>`:''}
+      ${tr.extrasV?`<tr><td>📦 Extras</td><td>$${fNum(tr.extrasV)}</td></tr>`:''}
+    </table>
+    <div class="tot">TOTAL A TRANSFERIR: $${fNum(total)}</div>
+    <br><button onclick="window.print()" style="width:100%;padding:12px;background:#3949AB;color:white;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer">🖨 Imprimir / Guardar PDF</button>
+    </body></html>`);
+    w.document.close();
   };
   n('stella-modal').style.display='flex';
 }
