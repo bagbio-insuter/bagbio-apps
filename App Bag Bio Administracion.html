@@ -634,20 +634,21 @@ function renderSvc(){
           <div><span style="color:#888">Lote:</span> <b>${s.lote||'-'}</b></div>
           <div><span style="color:#888">Envases:</span> <b>${s.bb||s.cantidad_envases||s.envases||'-'}</b></div>
           <div><span style="color:#888">Km:</span> <b>${s.kmdest||s.km||s.distancia_km||0}</b></div>
-          <div><span style="color:#888">Días:</span> <b>${s.dias||1}</b></div>
+          <div><span style="color:#888">Días:</span> <b>${s.dias_extra||s.dias||1}</b></div>
           <div><span style="color:#888">N₂:</span> <b>${s.litros_n2||s.n2_litros||0} L</b></div>
         </div>
         <div style="background:#E8F5E9;border-radius:10px;padding:12px 14px;margin-bottom:12px">
           <div style="font-size:11px;font-weight:800;color:#1B5E20;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">💸 Transferencia a Gabriel</div>
           <div style="font-size:13px;line-height:1.9">
-            ${tr.comidas?`<div>🍽 Comidas/viáticos: <b>$${fNum(tr.comidas)}</b></div>`:''}
-            ${tr.hotelCost?`<div>🏨 Hotel (${tr.hotel} noche/s): <b>$${fNum(tr.hotelCost)}</b></div>`:''}
-            ${tr.extrasV?`<div>📦 Extras/imprevistos: <b>$${fNum(tr.extrasV)}</b></div>`:''}
-            ${tr.cargasV?`<div>⚡ Cargas virtuales: <b>$${fNum(tr.cargasV)}</b></div>`:''}
-            ${tr.peajes?`<div>🛣 Peajes: <b>$${fNum(tr.peajes)}</b></div>`:''}
-            ${tr.extrasGastos?`<div>🔧 Gastos campo: <b>$${fNum(tr.extrasGastos)}</b></div>`:''}
-            ${!tr.comidas&&!tr.hotelCost&&!tr.extrasV&&!tr.peajes?`<div style="color:#888;font-style:italic;font-size:12px">Sin viáticos calculados</div>`:''}
-            <div style="border-top:1px solid #c8e6c9;margin-top:6px;padding-top:6px;font-weight:800;font-size:15px">A transferir: $${fNum(tr.transferGab)}</div>
+            ${(()=>{const d3=tr.dias,p3=2,desay3=d3*p3*parseFloat(CFG.desay||9000),mer3=d3*p3*parseFloat(CFG.merienda||9000),alm3=d3*p3*parseFloat(CFG.almuerzo||20000),cen3=tr.hotel*p3*parseFloat(CFG.cena||20000);return`
+              <div style="display:flex;justify-content:space-between"><span>🌅 Desayunos (${d3}d × ${p3}p)</span><b>$${fNum(desay3)}</b></div>
+              <div style="display:flex;justify-content:space-between"><span>🥐 Meriendas (${d3}d × ${p3}p)</span><b>$${fNum(mer3)}</b></div>
+              <div style="display:flex;justify-content:space-between"><span>🍽 Almuerzos (${d3}d × ${p3}p)</span><b>$${fNum(alm3)}</b></div>
+              ${cen3?`<div style="display:flex;justify-content:space-between"><span>🌙 Cenas (${tr.hotel}n × ${p3}p)</span><b>$${fNum(cen3)}</b></div>`:''}
+              ${tr.hotelCost?`<div style="display:flex;justify-content:space-between"><span>🏨 Hotel (${tr.hotel} noche/s)</span><b>$${fNum(tr.hotelCost)}</b></div>`:''}
+              ${tr.extrasV?`<div style="display:flex;justify-content:space-between"><span>📦 Extras</span><b>$${fNum(tr.extrasV)}</b></div>`:''}
+              ${tr.peajes?`<div style="display:flex;justify-content:space-between"><span>🛣 Peajes</span><b>$${fNum(tr.peajes)}</b></div>`:''}`;})()}
+            <div style="border-top:1px solid #c8e6c9;margin-top:6px;padding-top:6px;font-weight:800;font-size:15px;display:flex;justify-content:space-between"><span>A transferir</span><span>$${fNum(tr.transferGab)}</span></div>
           </div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:8px">
@@ -751,21 +752,28 @@ function openGab(id){
   const tr=calcTransf(s);
 
   n('gab-sub').textContent=`${s.cliente||''} · ${fDate(s.fecha)}`;
-  const totalViat = tr.peajes + tr.extras + tr.hotelCost;
-  // Build individual expense rows
-  const svcGastos = ALL_GASTOS.filter(g=>g.servicio_id===id && g.tipo!=='adelanto_gab');
-  const TIPO_LBL = {peaje:'🛣 Peaje',comida:'🍽 Comida',hospedaje:'🏨 Hospedaje',nafta:'⛽ Nafta extra',hotel:'🏨 Hotel',extra:'📦 Gasto extra'};
-  const gastosRows = svcGastos.length
-    ? svcGastos.map(g=>`<div>${TIPO_LBL[g.tipo]||('📌 '+g.tipo)}: <b>$${fNum(g.monto)}</b>${g.obs?' <span style="color:#888;font-size:11px">('+g.obs+')</span>':''}</div>`).join('')
-    : (totalViat>0
-        ? `<div>🛣 Peajes: <b>$${fNum(tr.peajes)}</b></div><div>📦 Extras: <b>$${fNum(tr.extras)}</b></div><div>🏨 Hotel: <b>$${fNum(tr.hotelCost)}</b></div>`
-        : `<div style="color:#999;font-style:italic">Sin gastos registrados por operarios</div>`);
+  const d2=tr.dias, pers2=2;
+  const desayT2=d2*pers2*parseFloat(CFG.desay||9000);
+  const merT2=d2*pers2*parseFloat(CFG.merienda||9000);
+  const almT2=d2*pers2*parseFloat(CFG.almuerzo||20000);
+  const cenT2=tr.hotel*pers2*parseFloat(CFG.cena||20000);
+  const totalViatDetalle=desayT2+merT2+almT2+cenT2+tr.hotelCost+tr.extrasV;
+  // Extra gastos from operarios (peajes, extras)
+  const svcGastos=ALL_GASTOS.filter(g=>g.servicio_id===id&&g.tipo!=='adelanto_gab');
+  const extrasRows=svcGastos.length?svcGastos.map(g=>`<div style="display:flex;justify-content:space-between"><span>📌 ${g.tipo}</span><b>$${fNum(g.monto)}</b></div>`).join(''):'';
   n('gab-detalle').innerHTML=
-    `<div>📅 <b>${s.id}</b> · ${fDate(s.fecha)} · ${tr.dias} día${tr.dias>1?'s':''}</div>`+
-    `<div style="color:#888;font-size:12px;margin-bottom:8px">${s.cliente||''}</div>`+
-    `<hr style="margin:6px 0;border-color:#ddd">`+
-    gastosRows+
-    `<div style="font-weight:800;margin-top:6px;border-top:1px solid #ddd;padding-top:6px">TOTAL VIÁTICOS: $${fNum(totalViat)}</div>`;
+    `<div style="font-size:13px;line-height:2">
+      <div style="display:flex;justify-content:space-between"><span>🌅 Desayunos (${d2}d × ${pers2}p)</span><b>$${fNum(desayT2)}</b></div>
+      <div style="display:flex;justify-content:space-between"><span>🥐 Meriendas (${d2}d × ${pers2}p)</span><b>$${fNum(merT2)}</b></div>
+      <div style="display:flex;justify-content:space-between"><span>🍽 Almuerzos (${d2}d × ${pers2}p)</span><b>$${fNum(almT2)}</b></div>
+      ${cenT2?`<div style="display:flex;justify-content:space-between"><span>🌙 Cenas (${tr.hotel}n × ${pers2}p)</span><b>$${fNum(cenT2)}</b></div>`:''}
+      ${tr.hotelCost?`<div style="display:flex;justify-content:space-between"><span>🏨 Hotel (${tr.hotel} noche/s)</span><b>$${fNum(tr.hotelCost)}</b></div>`:''}
+      ${tr.extrasV?`<div style="display:flex;justify-content:space-between"><span>📦 Extras</span><b>$${fNum(tr.extrasV)}</b></div>`:''}
+      ${extrasRows}
+      <div style="border-top:1px solid #c8e6c9;margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-weight:900">
+        <span>Total viáticos</span><b>$${fNum(totalViatDetalle)}</b>
+      </div>
+    </div>`;
 
   n('gab-saldo-ant').value = '';
   recalcGab();
