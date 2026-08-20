@@ -1130,7 +1130,7 @@ function renderAgenda(){
       var tel=cli&&cli.t&&cli.t!=='—'?cli.t.replace(/\s|\+/g,''):'';
       if(!tel){alert('Sin teléfono para '+sv.cliente);return;}
       var tn2=((sv.bb||0)*(sv.kg||1200)/1000).toFixed(1);
-      var msg=encodeURIComponent('Confirmación servicio MAP — '+sv.cliente+'\n'+'📦 '+sv.producto+' · '+sv.bb+' BB · '+tn2+' Tn\n'+'🗓 '+fDate(sv.fecha)+'\n📋 Estado: '+sv.estado+'\n— Bag Bio / Control Bio');
+      var reprogNote=sv.estado==='Reprogramado'?' (REPROGRAMADO)':''; var msg=encodeURIComponent('Confirmación servicio MAP — '+sv.cliente+reprogNote+'\n'+'📦 '+sv.producto+' · '+sv.bb+' BB · '+tn2+' Tn\n'+'🗓 Nueva fecha: '+fDate(sv.fecha)+(sv.estado==='Reprogramado'?'\n⚠️ Servicio reprogramado':'')+' \n📋 Estado: '+sv.estado+'\n— Bag Bio / Control Bio');
       window.open('whatsapp://send?phone='+tel+'&text='+msg,'_blank');
     });
   });

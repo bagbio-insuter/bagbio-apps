@@ -675,13 +675,20 @@ let _gabSvc = null;
 
 function recalcGab(){
   if(!_gabSvc) return;
-  const tr = calcTransf(_gabSvc);
-  // Viáticos only: peajes + extras + hotel (NO jornal - that's salary, handled separately)
-  const totalViat = tr.peajes + tr.extras + tr.hotelCost;
+  const s = _gabSvc;
+  const tr = calcTransf(s);
+  // Use budgeted amounts from config
+  const d = tr.dias;
+  const pers = 2;
+  const desayT = d*pers*parseFloat(CFG.desay||9000);
+  const merT   = d*pers*parseFloat(CFG.merienda||9000);
+  const almT   = d*pers*parseFloat(CFG.almuerzo||20000);
+  const cenT   = tr.hotel*pers*parseFloat(CFG.cena||20000);
+  const totalViat = desayT+merT+almT+cenT+tr.hotelCost+tr.extrasV;
   const saldoAnt = parseFloat(n('gab-saldo-ant').value||0);
   const neto = Math.max(0, totalViat - saldoAnt);
-  n('gab-neto').innerHTML = `A reintegrar a Gabriel: <span style="font-size:18px">$${fNum(neto)}</span>`;
-  return { totalViat, saldoAnt, neto, tr };
+  n('gab-neto').innerHTML = `A transferir a Gabriel: <span style="font-size:18px">$${fNum(neto)}</span>`;
+  return { totalViat, saldoAnt, neto, tr, desayT, merT, almT, cenT };
 }
 
 function openGab(id){
@@ -711,34 +718,29 @@ function openGab(id){
 
   n('gab-wa').onclick=()=>{
     const calc = recalcGab();
-    // Build itemized list from individual gastos records
-    const svcGastos = ALL_GASTOS.filter(g=>g.servicio_id===s.id && g.tipo!=='adelanto_gab');
-    const TIPO_LBL = {peaje:'🛣 Peaje',comida:'🍽 Comida',hospedaje:'🏨 Hospedaje',nafta:'⛽ Nafta extra',hotel:'🏨 Hotel',extra:'📦 Gasto extra'};
-    let itemLines = '';
-    if(svcGastos.length){
-      itemLines = svcGastos.map(g=>`${TIPO_LBL[g.tipo]||('📌 '+g.tipo)}: $${fNum(g.monto)}${g.obs?' ('+g.obs+')':''}`).join('\n');
-    } else {
-      // Fallback to totals if no individual records
-      if(tr.peajes) itemLines += `🛣 Peajes: $${fNum(tr.peajes)}\n`;
-      if(tr.extras) itemLines += `📦 Extras: $${fNum(tr.extras)}\n`;
-      if(tr.hotelCost) itemLines += `🏨 Hotel: $${fNum(tr.hotelCost)}\n`;
-    }
+    // Build budgeted breakdown from config
+    const d=tr.dias, pers=2;
+    const desayT=d*pers*parseFloat(CFG.desay||9000);
+    const merT=d*pers*parseFloat(CFG.merienda||9000);
+    const almT=d*pers*parseFloat(CFG.almuerzo||20000);
+    const cenT=tr.hotel*pers*parseFloat(CFG.cena||20000);
+    const totalPresup=desayT+merT+almT+cenT+tr.hotelCost+tr.extrasV;
+    const netoFinal=Math.max(0,totalPresup-calc.saldoAnt);
     const msg =
-      `💼 Bag Bio — Viáticos servicio
-`+
-      `Cliente: ${s.cliente||''}
-`+
-      `Fecha: ${fDate(s.fecha)} · ${tr.dias} día${tr.dias>1?'s':''}
-`+
-      `──────────────
-`+
-      (itemLines ? itemLines+'\n' : '')+
-      `Total gastos: $${fNum(calc.totalViat)}
-`+
-      (calc.saldoAnt?`Saldo a favor empresa: -$${fNum(calc.saldoAnt)}\n`:'')+
-      `──────────────
-`+
-      `✅ A transferir: $${fNum(calc.neto)}`;
+      '💼 Bag Bio — Viáticos servicio\n'+
+      'Cliente: '+(s.cliente||'')+'\n'+
+      'Fecha: '+fDate(s.fecha)+' · '+d+' día'+(d>1?'s':'')+'\n'+
+      '──────────────\n'+
+      '🌅 Desayuno ('+d+'d × '+pers+'p): $'+fNum(desayT)+'\n'+
+      '🥐 Merienda ('+d+'d × '+pers+'p): $'+fNum(merT)+'\n'+
+      '🍽 Almuerzo ('+d+'d × '+pers+'p): $'+fNum(almT)+'\n'+
+      (cenT?'🌙 Cena ('+tr.hotel+'n × '+pers+'p): $'+fNum(cenT)+'\n':'')+
+      (tr.hotelCost?'🏨 Hotel ('+tr.hotel+' noche/s): $'+fNum(tr.hotelCost)+'\n':'')+
+      (tr.extrasV?'📦 Extras/imprevistos: $'+fNum(tr.extrasV)+'\n':'')+
+      '──────────────\n'+
+      'Total presupuestado: $'+fNum(totalPresup)+'\n'+
+      (calc.saldoAnt?'Saldo anterior empresa: -$'+fNum(calc.saldoAnt)+'\n':'')+
+      '✅ A transferir: $'+fNum(netoFinal);
     window.open('whatsapp://send?phone=&text='+encodeURIComponent(msg),'_blank');
   };
   n('gab-modal').style.display='flex';
